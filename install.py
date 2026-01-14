@@ -23,13 +23,29 @@ def install():
     print("====================================================\n")
     
     print("[Aşama 1/3] Sistem Kontrolleri")
-    # Check docker
+    
+    # Check OS
+    if not (sys.platform.startswith("linux") or sys.platform.startswith("darwin")):
+        print("[!] Uyarı: Bu script en iyi Linux (Ubuntu/Debian) üzerinde çalışır.")
+    
+    # Automate Docker Installation
     try:
         subprocess.run(["docker", "--version"], capture_output=True, check=True)
         print("[✓] Docker bulundu.")
     except:
-        print("[✗] Docker bulunamadı! Lütfen önce Docker'ı kurun.")
-        return
+        print("[!] Docker bulunamadı. Otomatik kurulum başlatılıyor...")
+        time.sleep(1)
+        
+        # Install Docker via official script
+        if run_command("curl -fsSL https://get.docker.com | sh"):
+            print("[✓] Docker başarıyla kuruldu.")
+            print("[*] Docker servisi başlatılıyor...")
+            run_command("sudo systemctl start docker && sudo systemctl enable docker")
+            # Add user to docker group (optional but good practice)
+            # run_command("sudo usermod -aG docker $USER") 
+        else:
+            print("[✗] Docker otomatik kurulamadı. Lütfen 'curl -fsSL https://get.docker.com | sh' komutunu elle çalıştırın.")
+            return
 
     time.sleep(1)
     
