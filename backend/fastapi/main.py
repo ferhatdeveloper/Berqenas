@@ -115,14 +115,6 @@ app.include_router(remote_sync_api.router, prefix="/api/v1/sync", tags=["Remote 
 from routers import dashboard_api
 app.include_router(dashboard_api.router, prefix="/api/v1/dashboard", tags=["Dashboard Stats"])
 
-# Create database tables
-from database import engine, Base
-import models.user
-import models.remote
-import models.tenant
-import models.network
-Base.metadata.create_all(bind=engine)
-
 
 if __name__ == "__main__":
     import uvicorn

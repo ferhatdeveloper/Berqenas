@@ -56,6 +56,11 @@ REDIS_URL=redis://redis:6379/0
 ALLOWED_ORIGINS=http://{domain}
 WIREGUARD_CONFIG_DIR=/etc/wireguard
 WIREGUARD_INTERFACE=wg0
+
+# Auto-Setup Config (Used by Backend Container on Start)
+SETUP_ADMIN_USER={admin_user}
+SETUP_ADMIN_EMAIL={admin_email}
+SETUP_ADMIN_PASSWORD={admin_pass}
 """
     
     # Write to root and backend
@@ -73,14 +78,8 @@ WIREGUARD_INTERFACE=wg0
     
     if run_command("docker compose up -d --build"):
         print("\n[✓] Konteynerler başarıyla başlatıldı.")
-        
-        print("\n[+] Veritabanı şemaları ve yönetici hesabı hazırlanıyor...")
-        time.sleep(10) # Give containers time to initialize
-        
-        # Admin initialization script embedded
-        setup_cmd = f"docker compose exec backend python -c \"from database import Base, engine, SessionLocal; from models.user import User; from services.auth import get_password_hash; Base.metadata.create_all(bind=engine); db=SessionLocal(); existing=db.query(User).filter(User.username == '{admin_user}').first(); (not existing and db.add(User(username='{admin_user}', email='{admin_email}', hashed_password=get_password_hash('{admin_pass}'), is_active=True)) or True); db.commit(); db.close(); print('✓ Veritabanı hazır.')\""
-        
-        run_command(setup_cmd)
+        print("[+] Backend servisi veritabanını otomatik olarak başlatıyor...")
+        time.sleep(5) 
         
         print("\n====================================================")
         print("   TEBRİKLER! Berqenas başarıyla kuruldu.          ")

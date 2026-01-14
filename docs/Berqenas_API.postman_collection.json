@@ -40,6 +40,29 @@
                             ]
                         }
                     }
+                },
+                {
+                    "name": "Get Current User",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/me",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "me"
+                            ]
+                        }
+                    }
                 }
             ]
         },
@@ -94,6 +117,64 @@
                                 "api",
                                 "tenant",
                                 ""
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Remote Sync",
+            "item": [
+                {
+                    "name": "Register Remote DB",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "json",
+                            "json": "{\n    \"name\": \"branch_office\",\n    \"database_type\": \"postgresql\",\n    \"wireguard_ip\": \"10.50.1.2\",\n    \"database_host\": \"localhost\",\n    \"database_port\": 5432,\n    \"database_name\": \"local_db\",\n    \"username\": \"pguser\",\n    \"password\": \"pgpass\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/remote-db/register",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "remote-db",
+                                "register"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Trigger Sync",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/remote-db/1/sync",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "remote-db",
+                                "1",
+                                "sync"
                             ]
                         }
                     }
