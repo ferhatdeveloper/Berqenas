@@ -3,145 +3,95 @@
 <div align="center">
   <img src="https://via.placeholder.com/200x200?text=Berqenas+Logo" alt="Berqenas Logo" width="120">
   <h3>Secure Mesh Networking • Real-time Data Sync • Automated Infrastructure</h3>
-  <p>
-    <a href="#english">English</a> | 
-    <a href="#turkish">Türkçe</a> | 
-    <a href="#arabic">العربية</a> | 
-    <a href="#german">Deutsch</a>
-  </p>
 </div>
 
 ---
 
-<a name="english"></a>
-## 🇺🇸 English
+## 🌍 Select Language / Dil Seçin
 
-### 🏢 For Investors: The Value Proposition
-Berqenas is a high-growth platform targeting the $200B+ Cloud Security and Edge Computing market. By bridging the gap between legacy on-premise infrastructure and modern cloud environments, we provide a seamless "Hub-Spoke" connectivity model. Our automated provisioning reduces deployment costs by 70%, making high-end security accessible to SMEs and Enterprises alike.
+<details>
+<summary><b>🇺🇸 English - Click to Expand</b></summary>
 
-### 🛡️ For Customers: Why Berqenas?
-- **Zero-Trust Connectivity**: Every connection is encrypted via WireGuard, ensuring your data never touches the public internet unshielded.
-- **Instant Cloud Presence**: Turn your local MSSQL/PostgreSQL databases into secure Cloud APIs (FastAPI) automatically.
-- **Resilience**: Bi-directional sync ensures your remote offices and central cloud are always in harmony, even with intermittent connectivity.
+### 🏢 For Investors
+Berqenas targets the $200B+ Cloud Security market. Our automated "Hub-Spoke" model reduces infrastructure costs by 70%.
 
-### 💻 For Developers: Technical Depth
-- **Architecture**: Microservices-oriented FastAPI backend, React/Vite frontend.
-- **Persistence**: Multi-tenant isolated PostgreSQL schemas with RBAC.
-- **Automation**: Software-Defined Networking (SDN) using WireGuard peers and iptables rules.
-- **Sync Engine**: RowVersion-based delta detection for high-performance data replication.
+### 🚀 Access Information
+| Service | URL | Default Admin |
+| :--- | :--- | :--- |
+| **Main Panel** | `https://yourdomain.com` | User defined in `install.py` |
+| **API Docs** | `https://yourdomain.com:8000/api/docs` | JWT Protected |
+| **SSL/Proxy Manager** | `http://yourdomain.com:81` | `admin@example.com` / `changeme` |
 
----
+### 📖 System Usage Guide
+1. **Initial Setup**: Run `python3 install.py` and follow the prompts.
+2. **SSL Config**: Login to Proxy Manager (Port 81), add a "Proxy Host" for your domain, and enable "SSL: Request a New Let's Encrypt Certificate".
+3. **Adding Tenants**: Use the Admin Panel or CLI to create a new tenant. This automatically provisions a PSQL schema and VPN subnet.
+4. **Remote Sync**: Install WireGuard on your edge device, connect to Berqenas, then register the database via "Remote DBs" section.
 
-<a name="turkish"></a>
-## 🇹🇷 Türkçe
+### 🛠️ API & Postman
+- **Postman Collection**: [Download JSON](docs/Berqenas_API.postman_collection.json) (Import this into Postman)
+- **Interactive API Docs**: `https://yourdomain.com:8000/api/docs`
 
-### 🏢 Yatırımcılar İçin: Değer Önerisi
-Berqenas, 200 milyar doları aşan Bulut Güvenliği ve Edge Bilişim pazarını hedefleyen yüksek büyüme potansiyelli bir platformdur. Eski tip yerel altyapılar ile modern bulut ortamları arasındaki uçurumu kapatan "Merkez-Uç" (Hub-Spoke) bağlantı modelimiz, kurulum maliyetlerini %70 oranında azaltarak KOBİ ve büyük ölçekli işletmeler için erişilebilir yüksek güvenlik sunar.
+### 🗄️ Direct Database Access
+Each tenant can connect directly to their isolated PostgreSQL schema:
+- **Host**: `yourdomain.com` (or WireGuard IP)
+- **Port**: `5432`
+- **User/Password**: Your tenant specific credentials.
+- **Isolation**: You will only see and access your assigned schema.
 
-### 🛡️ Müşteriler İçin: Neden Berqenas?
-- **Sıfır Güven Bağlantısı**: Her bağlantı WireGuard ile şifrelenir; verileriniz genel internete asla korumasız çıkmaz.
-- **Anında Bulut Varlığı**: Yerel MSSQL/PostgreSQL veritabanlarınızı otomatik olarak güvenli Bulut API'lerine (FastAPI) dönüştürün.
-- **Süreklilik**: Çift yönlü senkronizasyon, şubeleriniz ve merkezi bulutunuzun kesintilerde bile her zaman güncel kalmasını sağlar.
+</details>
 
-### 💻 Geliştiriciler İçin: Teknik Derinlik
-- **Mimari**: Mikroservis odaklı FastAPI backend, React/Vite frontend.
-- **Veri İzolesi**: RBAC destekli, çok kiracılı izole PostgreSQL şemaları.
-- **Otomasyon**: WireGuard peer'ları ve iptables kuralları kullanarak Yazılım Tanımlı Ağ (SDN).
-- **Senkronizasyon**: Yüksek performanslı veri replikasyonu için RowVersion tabanlı değişim algılama.
+<details>
+<summary><b>🇹🇷 Türkçe - Genişletmek için Tıklayın</b></summary>
 
----
+### 🏢 Yatırımcılar İçin
+Berqenas, 200 milyar dolarlık bulut güvenliği pazarını hedefler. Otomatik altyapı modelimiz maliyetleri %70 azaltır.
 
-<a name="arabic"></a>
-## 🇸🇦 العربية
+### 🚀 Erişim Bilgileri
+| Servis | URL | Varsayılan Yetkili |
+| :--- | :--- | :--- |
+| **Ana Panel** | `https://alanadiniz.com` | `install.py` ile belirlenen kullanıcı |
+| **API Dokümanı** | `https://alanadiniz.com:8000/api/docs` | JWT Korumalı |
+| **SSL/Proxy Paneli** | `http://alanadiniz.com:81` | `admin@example.com` / `changeme` |
 
-### 🏢 للمستثمرين: مقترح القيمة
-تعد منصة Berqenas حلاً ذا نمو عالٍ يستهدف سوق أمن السحابة والحوسبة الطرفية البالغ حجمه أكثر من 200 مليار دولار. من خلال سد الفجوة بين البنية التحتية المحلية القديمة والبيئات السحابية الحديثة، نوفر نموذج اتصال "Hub-Spoke" سلساً. يقلل نظامنا الآلي من تكاليف النشر بنسبة 70%، مما يجعل الأمن رفيع المستوى متاحاً للشركات الصغيرة والمتوسطة والكبيرة على حد سواء.
+### 📖 Sistem Kullanım Kılavuzu
+1. **İlk Kurulum**: `python3 install.py` komutunu çalıştırın ve yönergeleri izleyin.
+2. **SSL Ayarı**: Proxy Paneline (Port 81) girin, alan adınız için bir "Proxy Host" ekleyin ve "SSL: Request a New Let's Encrypt Certificate" seçeneğini aktif edin.
+3. **Müşteri (Tenant) Ekleme**: Admin Panelini veya CLI'ı kullanarak yeni bir kiracı oluşturun. Sistem otomatik olarak DB şeması ve VPN subneti hazırlar.
 
-### 🛡️ للعملاء: لماذا منصة Berqenas؟
-- **اتصال انعدام الثقة (Zero-Trust)**: يتم تشفير كل اتصال عبر WireGuard، مما يضمن عدم ملامسة بياناتك للإنترنت العام دون حماية.
-- **حضور سحابي فوري**: حول قواعد بيانات MSSQL/PostgreSQL المحلية إلى واجهات برمجة تطبيقات سحابية (FastAPI) آمنة تلقائياً.
-- **المرونة**: يضمن المزامنة ثنائية الاتجاه أن تكون مكاتبك البعيدة والسحابة المركزية دائماً متزامنة، حتى مع الاتصالات المتقطعة.
+### 🛠️ API & Postman
+- **Postman Koleksiyonu**: [JSON İndir](docs/Berqenas_API.postman_collection.json) (Postman'a içe aktarın)
+- **Canlı Dokümantasyon**: `https://alanadiniz.com:8000/api/docs`
 
-### 💻 للمطورين: العمق التقني
-- **الهيكل**: واجهة خلفية FastAPI موجهة نحو الخدمات المصغرة، واجهة أمامية React/Vite.
-- **تعدد المستأجرين**: مخططات PostgreSQL معزولة مع نظام صلاحيات RBAC.
-- **الأتمتة**: شبكات محددة برمجياً (SDN) باستخدام تقنيات WireGuard وقواعد iptables.
-- **محرك المزامنة**: كشف التغييرات القائم على RowVersion لنسخ البيانات عالي الأداء.
+### 🗄️ Direkt Veritabanı Bağlantısı
+Her müşteri, kendi izole PostgreSQL şemasına direkt bağlanabilir:
+- **Sunucu**: `alanadiniz.com` (Veya WireGuard IP)
+- **Port**: `5432`
+- **Yetkilendirme**: Kiracıya özel kullanıcı adı ve şifre.
+- **İzolasyon**: Sadece size atanan şemayı görür ve yönetirsiniz.
 
----
-
-<a name="german"></a>
-## 🇩🇪 Deutsch
-
-### 🏢 Für Investoren: Das Wertversprechen
-Berqenas ist eine wachstumsstarke Plattform, die auf den über 200 Mrd. USD großen Markt für Cloud-Sicherheit und Edge-Computing abzielt. Durch die Überbrückung der Lücke zwischen herkömmlicher lokaler Infrastruktur und modernen Cloud-Umgebungen bieten wir ein nahtloses "Hub-Spoke"-Konnektivitätsmodell. Unsere automatisierte Bereitstellung reduziert die Betriebskosten um 70% und macht High-End-Sicherheit für KMUs und Großunternehmen gleichermaßen zugänglich.
-
-### 🛡️ Für Kunden: Warum Berqenas?
-- **Zero-Trust-Konnektivität**: Jede Verbindung wird über WireGuard verschlüelt, sodass Ihre Daten niemals ungeschützt das öffentliche Internet berühren.
-- **Sofortige Cloud-Präsenz**: Verwandeln Sie Ihre lokalen MSSQL/PostgreSQL-Datenbanken automatisch in sichere Cloud-APIs (FastAPI).
-- **Resilienz**: Die bi-direktionale Synchronisierung stellt sicher, dass Ihre Außenstellen und die zentrale Cloud immer synchron sind, selbst bei instabilen Verbindungen.
-
-### 💻 Für Entwickler: Technische Tiefe
-- **Architektur**: Mikroservice-orientiertes FastAPI-Backend, React/Vite-Frontend.
-- **Persistenz**: Mandantenfähige, isolierte PostgreSQL-Schemas mit RBAC-Unterstützung.
-- **Automatisierung**: Software-Defined Networking (SDN) mit WireGuard-Peers und iptables-Regeln.
-- **Sync-Engine**: RowVersion-basierte Delta-Erkennung für eine hochperformante Datenreplikation.
+</details>
 
 ---
 
 ## 🛠️ Quick Installation / Hızlı Kurulum
 
 ```bash
-# Clone the repository
-git clone https://github.com/berqenas/platform.git
-cd platform
-
-# Start Backend
-cd backend/fastapi && pip install -r requirements.txt
-python init_db.py && uvicorn main:app
+git clone https://github.com/ferhatdeveloper/Berqenas.git && cd Berqenas
+python3 install.py
 ```
 
-## � Project Metrics & Technical Specs / Teknik Veriler
+## 📊 Project Metrics & Technical Specs
 
 <details>
-<summary><b>English: Performance & Scalability</b></summary>
+<summary><b>Technical Data (Expand)</b></summary>
 <ul>
-  <li><b>Capacity</b>: Supports 10,000+ simultaneous VPN tunnels.</li>
-  <li><b>Throughput</b>: Optimized for 1GB/s encrypted data flow per node.</li>
-  <li><b>Security</b>: AES-256-GCM encryption for data-at-rest; WireGuard (ChaCha20) for data-in-transit.</li>
-  <li><b>Database</b>: Handles 50,000+ transactions per second in synchronized clusters.</li>
+  <li><b>Capacity</b>: 10,000+ simultaneous VPN tunnels.</li>
+  <li><b>Security</b>: AES-256-GCM / WireGuard (ChaCha20).</li>
+  <li><b>API</b>: FastAPI with OAuth2 JWT.</li>
+  <li><b>DB Isolation</b>: Schema-based multi-tenancy.</li>
 </ul>
 </details>
 
-<details>
-<summary><b>Türkçe: Performans ve Ölçeklenebilirlik</b></summary>
-<ul>
-  <li><b>Kapasite</b>: 10.000+ eşzamanlı VPN tüneli desteği.</li>
-  <li><b>Veri Akışı</b>: Düğüm başına 1GB/s optimize edilmiş şifreli veri akışı.</li>
-  <li><b>Güvenlik</b>: Durağan veriler için AES-256-GCM; aktarılan veriler için WireGuard (ChaCha20).</li>
-  <li><b>Veritabanı</b>: Senkronize kümelerde saniyede 50.000+ işlem (TPS) kapasitesi.</li>
-</ul>
-</details>
-
-<details>
-<summary><b>Deutsch: Leistung und Skalierbarkeit</b></summary>
-<ul>
-  <li><b>Kapazität</b>: Unterstützt 10.000+ gleichzeitige VPN-Tunnel.</li>
-  <li><b>Durchsatz</b>: Optimierter verschlüsselter Datenfluss von 1 GB/s pro Knoten.</li>
-  <li><b>Sicherheit</b>: AES-256-GCM Verschlüsselung für ruhende Daten; WireGuard (ChaCha20) für Datenübertragungen.</li>
-  <li><b>Datenbank</b>: Verarbeitet 50.000+ Transaktionen pro Sekunde in synchronisierten Clustern.</li>
-</ul>
-</details>
-
-<details>
-<summary><b>العربية: الأداء والقابلية للتوسع</b></summary>
-<ul>
-  <li><b>السعة</b>: يدعم أكثر من 10,000 نفق VPN متزامن.</li>
-  <li><b>الإنتاجية</b>: تدفق بيانات مشفر محسّن سعة 1 جيجابايت/ثانية لكل عقدة.</li>
-  <li><b>الأمن</b>: تشفير AES-256-GCM للبيانات المخزنة؛ WireGuard (ChaCha20) للبيانات المنتقلة.</li>
-  <li><b>قاعدة البيانات</b>: تتعامل مع أكثر من 50,000 عملية في الثانية في المجموعات المتزامنة.</li>
-</ul>
-</details>
-
-## �📄 License
-Proprietary Software. All rights reserved. © 2026 Berqenas.
+---
+© 2026 Berqenas Cloud & Security. All rights reserved.

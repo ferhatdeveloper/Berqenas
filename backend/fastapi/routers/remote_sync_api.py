@@ -107,34 +107,36 @@ async def sync_remote_database(
     db.commit()
 
     def sync_task(job_id: int):
-        from services.hasura_service import HasuraService
+        from services.bidirectional_sync import BiDirectionalSync
         from models.remote import SyncLog
-        import time
         
         db = SessionLocal()
         try:
+            # Get job and remote db
+            j = db.query(SyncJob).filter(SyncJob.id == job_id).first()
+            if not j: return
+            
+            remote_db = db.query(RemoteDatabase).filter(RemoteDatabase.id == j.remote_db_id).first()
+            if not remote_db: return
+
             # log starting
-            db.add(SyncLog(job_id=job_id, level="info", message="Starting bi-directional sync"))
+            db.add(SyncLog(job_id=job_id, level="info", message="Starting real bi-directional sync engine"))
             db.commit()
             
-            time.sleep(2) # Simulate work
+            # RUN REAL SYNC
+            syncer = BiDirectionalSync(remote_db)
+            results = syncer.sync_all()
             
             # Update job status
-            j = db.query(SyncJob).filter(SyncJob.id == job_id).first()
-            if j:
-                j.status = "completed"
-                j.completed_at = datetime.utcnow()
-                j.records_synced = 100 # Mock count
-                
-                # Update DB last sync
-                r = db.query(RemoteDatabase).filter(RemoteDatabase.id == j.remote_db_id).first()
-                if r: 
-                    r.last_sync = datetime.utcnow()
-                    if r.api_enabled:
-                        HasuraService.track_table("remote_data", schema=r.schema)
-                
-                db.add(SyncLog(job_id=job_id, level="info", message="Sync completed successfully"))
-                db.commit()
+            j.status = "completed"
+            j.completed_at = datetime.utcnow()
+            j.records_synced = results.get("total_synced", 0)
+            
+            # Update DB last sync
+            remote_db.last_sync = datetime.utcnow()
+            
+            db.add(SyncLog(job_id=job_id, level="info", message=f"Sync completed. Synced {j.records_synced} records."))
+            db.commit()
             
         except Exception as e:
             j = db.query(SyncJob).filter(SyncJob.id == job_id).first()

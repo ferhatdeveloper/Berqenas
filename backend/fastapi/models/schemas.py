@@ -42,6 +42,7 @@ class TenantCreate(BaseModel):
     max_connections: int = Field(default=20, ge=1, le=1000)
     vpn_enabled: bool = Field(default=False)
     public_api_enabled: bool = Field(default=True)
+    subdomain: Optional[str] = Field(None, pattern="^[a-z0-9-]+$")
     
     @validator('name')
     def name_must_be_lowercase(cls, v):
@@ -66,6 +67,7 @@ class TenantResponse(BaseModel):
     vpn_enabled: bool
     public_api_enabled: bool
     api_key: str
+    subdomain: Optional[str]
     vpn_subnet: Optional[str]
     status: TenantStatus
     created_at: datetime

@@ -54,6 +54,7 @@ async def create_tenant(tenant_in: TenantCreate, db: Session = Depends(get_db)):
             vpn_enabled=tenant_in.vpn_enabled,
             public_api_enabled=tenant_in.public_api_enabled,
             api_key=api_key,
+            subdomain=tenant_in.subdomain,
             vpn_subnet=vpn_subnet,
             status="active"
         )
