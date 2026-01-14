@@ -8,6 +8,7 @@ import {
     Server,
     Zap
 } from 'lucide-react';
+import { api } from '../services/api';
 
 interface StatCardProps {
     title: string;
@@ -47,16 +48,23 @@ export default function BerqenasDashboard() {
         apiRequests: 0,
         syncStatus: 0
     });
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // TODO: Fetch real data from API
-        setStats({
-            totalTenants: 12,
-            activeVPNs: 8,
-            apiRequests: 24567,
-            syncStatus: 5
-        });
+        fetchStats();
     }, []);
+
+    const fetchStats = async () => {
+        try {
+            setLoading(true);
+            const data = await api.dashboard.stats();
+            setStats(data);
+        } catch (error) {
+            console.error('Failed to fetch dashboard stats:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <div className="p-8 bg-gray-900 min-h-screen">

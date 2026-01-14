@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Shield, Plus, Wifi, WifiOff, Download, QrCode, Trash2 } from 'lucide-react';
+import { api } from '../services/api';
 
 interface VPNClient {
     id: number;
@@ -13,40 +14,26 @@ interface VPNClient {
 }
 
 export default function VPNNetworkPage() {
-    const [clients, setClients] = useState<VPNClient[]>([
-        {
-            id: 1,
-            tenant: 'acme',
-            device_name: 'office-server',
-            ip_address: '10.60.5.10',
-            status: 'connected',
-            last_seen: '2 minutes ago',
-            data_sent: '2.4 GB',
-            data_received: '1.8 GB'
-        },
-        {
-            id: 2,
-            tenant: 'techstart',
-            device_name: 'db-server',
-            ip_address: '10.60.5.12',
-            status: 'connected',
-            last_seen: '5 minutes ago',
-            data_sent: '1.2 GB',
-            data_received: '890 MB'
-        },
-        {
-            id: 3,
-            tenant: 'acme',
-            device_name: 'backup-server',
-            ip_address: '10.60.5.11',
-            status: 'disconnected',
-            last_seen: '2 hours ago',
-            data_sent: '450 MB',
-            data_received: '320 MB'
-        }
-    ]);
+    const [clients, setClients] = useState<VPNClient[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [selectedClient, setSelectedClient] = useState<VPNClient | null>(null);
 
-    const [selectedClient, setSelectedClient] = useState<VPNClient | null>(clients[0]);
+    useEffect(() => {
+        fetchClients();
+    }, []);
+
+    const fetchClients = async () => {
+        try {
+            setLoading(true);
+            const data = await api.network.clients();
+            setClients(data);
+            if (data.length > 0) setSelectedClient(data[0]);
+        } catch (error) {
+            console.error('Failed to fetch VPN clients:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <div className="p-8 bg-gray-900 min-h-screen">
@@ -74,8 +61,8 @@ export default function VPNNetworkPage() {
                                     key={client.id}
                                     onClick={() => setSelectedClient(client)}
                                     className={`w-full text-left p-4 rounded-lg transition ${selectedClient?.id === client.id
-                                            ? 'bg-blue-500/20 border-2 border-blue-500'
-                                            : 'bg-gray-700/50 border-2 border-transparent hover:border-gray-600'
+                                        ? 'bg-blue-500/20 border-2 border-blue-500'
+                                        : 'bg-gray-700/50 border-2 border-transparent hover:border-gray-600'
                                         }`}
                                 >
                                     <div className="flex items-center justify-between mb-2">
@@ -141,8 +128,8 @@ export default function VPNNetworkPage() {
                                 <div className="bg-gray-700/50 rounded-lg p-4">
                                     <p className="text-gray-400 text-sm mb-1">Status</p>
                                     <span className={`inline-flex items-center gap-2 px-2 py-1 rounded text-sm ${selectedClient.status === 'connected'
-                                            ? 'bg-green-500/10 text-green-400'
-                                            : 'bg-gray-500/10 text-gray-400'
+                                        ? 'bg-green-500/10 text-green-400'
+                                        : 'bg-gray-500/10 text-gray-400'
                                         }`}>
                                         <div className={`w-2 h-2 rounded-full ${selectedClient.status === 'connected' ? 'bg-green-400' : 'bg-gray-400'
                                             }`}></div>

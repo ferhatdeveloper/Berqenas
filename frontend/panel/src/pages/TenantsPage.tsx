@@ -10,6 +10,7 @@ import {
     HardDrive,
     Activity
 } from 'lucide-react';
+import { api } from '../services/api';
 
 interface Tenant {
     id: number;
@@ -26,38 +27,39 @@ interface Tenant {
 
 export default function TenantsPage() {
     const [tenants, setTenants] = useState<Tenant[]>([]);
+    const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [showCreateModal, setShowCreateModal] = useState(false);
 
     useEffect(() => {
-        // TODO: Fetch from API
-        setTenants([
-            {
-                id: 1,
-                name: 'acme',
-                database_type: 'postgresql',
-                status: 'active',
-                vpn_enabled: true,
-                public_api_enabled: true,
-                disk_quota_gb: 10,
-                disk_used_gb: 4.2,
-                api_calls_24h: 1247,
-                created_at: '2026-01-10'
-            },
-            {
-                id: 2,
-                name: 'techstart',
-                database_type: 'mssql',
-                status: 'active',
-                vpn_enabled: true,
-                public_api_enabled: false,
-                disk_quota_gb: 5,
-                disk_used_gb: 2.1,
-                api_calls_24h: 543,
-                created_at: '2026-01-12'
-            }
-        ]);
+        fetchTenants();
     }, []);
+
+    const fetchTenants = async () => {
+        try {
+            setLoading(true);
+            const data = await api.tenants.list();
+            setTenants(data);
+        } catch (error) {
+            console.error('Failed to fetch tenants:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleCreateTenant = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        const formData = new FormData(e.currentTarget);
+        const data = Object.fromEntries(formData.entries());
+
+        try {
+            await api.tenants.create(data);
+            setShowCreateModal(false);
+            fetchTenants();
+        } catch (error) {
+            console.error('Failed to create tenant:', error);
+        }
+    };
 
     const filteredTenants = tenants.filter(t =>
         t.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -114,8 +116,8 @@ export default function TenantsPage() {
                                 <div>
                                     <h3 className="text-xl font-bold text-white">{tenant.name}</h3>
                                     <span className={`inline-block px-2 py-1 rounded text-xs mt-2 ${tenant.database_type === 'postgresql'
-                                            ? 'bg-blue-500/10 text-blue-400'
-                                            : 'bg-orange-500/10 text-orange-400'
+                                        ? 'bg-blue-500/10 text-blue-400'
+                                        : 'bg-orange-500/10 text-orange-400'
                                         }`}>
                                         {tenant.database_type.toUpperCase()}
                                     </span>
@@ -128,8 +130,8 @@ export default function TenantsPage() {
                             {/* Status Indicators */}
                             <div className="flex gap-2 mb-4">
                                 <span className={`flex items-center gap-1 px-2 py-1 rounded text-xs ${tenant.status === 'active'
-                                        ? 'bg-green-500/10 text-green-400'
-                                        : 'bg-red-500/10 text-red-400'
+                                    ? 'bg-green-500/10 text-green-400'
+                                    : 'bg-red-500/10 text-red-400'
                                     }`}>
                                     <div className={`w-2 h-2 rounded-full ${tenant.status === 'active' ? 'bg-green-400' : 'bg-red-400'
                                         }`}></div>
@@ -191,7 +193,7 @@ export default function TenantsPage() {
                         <div className="bg-gray-800 rounded-lg p-8 max-w-md w-full border border-gray-700">
                             <h2 className="text-2xl font-bold text-white mb-6">Create Tenant</h2>
 
-                            <form className="space-y-4">
+                            <form className="space-y-4" onSubmit={handleCreateTenant}>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-300 mb-2">Tenant Name</label>
                                     <input

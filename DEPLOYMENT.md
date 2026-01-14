@@ -1,71 +1,34 @@
 # Berqenas Cloud - Production Deployment Guide
 
-## 🚀 Deployment Steps
+Bu rehber, Berqenas platformunun Docker kullanarak üretim ortamına nasıl dağıtılacağını adım adım açıklar.
 
-### 1. Prepare Server
-Ensure your Ubuntu/Debian server has Docker and Docker Compose installed.
+## 🚀 Tek Komutla Kurulum (Single-Command Setup)
 
-```bash
-# Install Docker
-curl -fsSL https://get.docker.com -o get-docker.sh
-sh get-docker.sh
-```
-
-### 2. Copy Files
-Upload the project files to your server (e.g., via SCP or Git).
-
-Required structure:
-```
-/opt/berqenas/
-├── docker-compose.yml
-├── backend/
-│   └── fastapi/
-│       ├── Dockerfile
-│       ├── requirements.txt
-│       └── ...
-└── frontend/
-    └── panel/
-        ├── Dockerfile
-        ├── package.json
-        └── ...
-```
-
-### 3. Configure Environment
-Create a `.env` file for secrets (do not commit this):
-
-```ini
-POSTGRES_PASSWORD=SuperSecurePassword123
-DATABASE_URL=postgresql://berqenas:SuperSecurePassword123@db:5432/berqenas
-WIREGUARD_PRIVATE_KEY=...
-```
-
-### 4. Build & Launch
-Run the stack using Docker Compose:
+Platformu kurmak için ana dizinde aşağıdaki komutu çalıştırmanız yeterlidir. Kurulum aşamalı ve etkileşimli olarak gerçekleşecektir:
 
 ```bash
-cd /opt/berqenas
-docker compose up -d --build
+python install.py
 ```
 
-### 5. Verify Status
-Check if all containers are running:
-```bash
-docker compose ps
-```
-
-You should see:
-- `backend` (Port 8000)
-- `frontend` (Port 80)
-- `db` (Postgres 5432)
-- `wireguard` (UDP 51820)
+### Kurulum Aşamaları:
+1. **Sistem Kontrolü**: Docker ve gerekli bağımlılıkların varlığı kontrol edilir.
+2. **Yapılandırma**: Veritabanı şifreleri ve admin hesap bilgileri size sorulur.
+3. **Dağıtım**: Tüm servisler (Backend, Frontend, DB, VPN, Redis) Docker üzerinden otomatik olarak ayağa kaldırılır.
 
 ---
 
-## 🌐 Access
-- **Control Panel**: http://your-server-ip
-- **API**: http://your-server-ip:8000/api/docs
+## 🛠️ Manuel Kurulum (Alternatif)
+Eğer aşamaları manuel kontrol etmek isterseniz:
 
-## 🔒 Security Post-Install
-1. Setup Nginx/Traefik as reverse proxy with SSL (Let's Encrypt).
-2. Firewall: Allow only ports 80, 443, and 51820 (UDP).
-3. Change default passwords.
+## 🌐 Erişim Portları
+- **Kontrol Paneli**: http://sunucu-ip (Port 80/443)
+- **API Dokümantasyonu**: http://sunucu-ip:8000/api/docs
+- **VPN**: 51820 (UDP)
+
+## 🔒 Güvenlik Notları
+1. **SSL/TLS**: Üretim ortamında Nginx Reverse Proxy ve Let's Encrypt kullanılması zorunludur.
+2. **Güvenlik Duvarı**: Sadece 80, 443 ve 51820 (UDP) portlarına izin verin.
+3. **Şifreler**: `.env` dosyasındaki varsayılan şifreleri mutlaka değiştirin.
+
+---
+© 2026 Berqenas Cloud & Security - Tüm Hakları Saklıdır.

@@ -10,7 +10,9 @@ import logging
 
 from services.auto_api_generator import generate_api_for_database, MSSQLIntrospector
 
-router = APIRouter()
+from services.auth import get_current_active_user
+
+router = APIRouter(dependencies=[Depends(get_current_active_user)])
 logger = logging.getLogger(__name__)
 
 

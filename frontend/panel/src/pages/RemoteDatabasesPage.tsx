@@ -10,6 +10,7 @@ import {
     Zap,
     Table as TableIcon
 } from 'lucide-react';
+import { api } from '../services/api';
 
 interface RemoteDatabase {
     id: number;
@@ -26,36 +27,47 @@ interface RemoteDatabase {
 
 export default function RemoteDatabasesPage() {
     const [databases, setDatabases] = useState<RemoteDatabase[]>([]);
+    const [loading, setLoading] = useState(true);
     const [showAddModal, setShowAddModal] = useState(false);
 
     useEffect(() => {
-        // TODO: Fetch from API
-        setDatabases([
-            {
-                id: 1,
-                name: 'customer_erp',
-                database_type: 'mssql',
-                wireguard_ip: '10.60.5.10',
-                connection_status: 'connected',
-                last_sync: '2 minutes ago',
-                sync_mode: 'incremental',
-                table_count: 8,
-                api_enabled: true,
-                public_endpoint: 'https://api.berqenas.com/remote/1'
-            },
-            {
-                id: 2,
-                name: 'legacy_crm',
-                database_type: 'postgresql',
-                wireguard_ip: '10.60.5.12',
-                connection_status: 'connected',
-                last_sync: '15 minutes ago',
-                sync_mode: 'full',
-                table_count: 12,
-                api_enabled: false
-            }
-        ]);
+        fetchDatabases();
     }, []);
+
+    const fetchDatabases = async () => {
+        try {
+            setLoading(true);
+            const data = await api.sync.listRemoteDBs();
+            setDatabases(data);
+        } catch (error) {
+            console.error('Failed to fetch databases:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleAddDatabase = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        const formData = new FormData(e.currentTarget);
+        const data = Object.fromEntries(formData.entries());
+
+        try {
+            await api.sync.registerDB(data);
+            setShowAddModal(false);
+            fetchDatabases();
+        } catch (error) {
+            console.error('Failed to register database:', error);
+        }
+    };
+
+    const handleSyncNow = async (dbId: number) => {
+        try {
+            await api.sync.syncNow(dbId);
+            fetchDatabases(); // Refresh status
+        } catch (error) {
+            console.error('Sync failed:', error);
+        }
+    };
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -106,8 +118,8 @@ export default function RemoteDatabasesPage() {
                                     <div>
                                         <h3 className="text-lg font-bold text-white">{db.name}</h3>
                                         <span className={`inline-block px-2 py-1 rounded text-xs mt-1 ${db.database_type === 'postgresql'
-                                                ? 'bg-blue-500/10 text-blue-400'
-                                                : 'bg-orange-500/10 text-orange-400'
+                                            ? 'bg-blue-500/10 text-blue-400'
+                                            : 'bg-orange-500/10 text-orange-400'
                                             }`}>
                                             {db.database_type.toUpperCase()}
                                         </span>
@@ -177,7 +189,10 @@ export default function RemoteDatabasesPage() {
 
                             {/* Actions */}
                             <div className="flex gap-2">
-                                <button className="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded transition text-sm flex items-center justify-center gap-2">
+                                <button
+                                    onClick={() => handleSyncNow(db.id)}
+                                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded transition text-sm flex items-center justify-center gap-2"
+                                >
                                     <RefreshCw className="w-4 h-4" />
                                     Sync Now
                                 </button>
@@ -198,7 +213,7 @@ export default function RemoteDatabasesPage() {
                         <div className="bg-gray-800 rounded-lg p-8 max-w-lg w-full border border-gray-700 max-h-[90vh] overflow-y-auto">
                             <h2 className="text-2xl font-bold text-white mb-6">Add Remote Database</h2>
 
-                            <form className="space-y-4">
+                            <form className="space-y-4" onSubmit={handleAddDatabase}>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-300 mb-2">Database Name</label>
                                     <input

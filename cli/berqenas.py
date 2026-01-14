@@ -12,17 +12,87 @@ from rich.console import Console
 from rich.table import Table
 from rich import print as rprint
 
+import os
+
 console = Console()
 
-# API Configuration
-API_BASE_URL = "http://localhost:8000/api/v1"
+# Configuration
+CONFIG_PATH = os.path.expanduser("~/.berqenas_config")
 
+def load_config():
+    if os.path.exists(CONFIG_PATH):
+        with open(CONFIG_PATH, "r") as f:
+            return json.load(f)
+    return {"api_url": "http://localhost:8000/api/v1", "token": None}
+
+def save_config(config):
+    with open(CONFIG_PATH, "w") as f:
+        json.dump(config, f, indent=2)
+
+config = load_config()
+API_BASE_URL = config.get("api_url")
+
+def get_headers():
+    headers = {}
+    if config.get("token"):
+        headers["Authorization"] = f"Bearer {config['token']}"
+    return headers
 
 @click.group()
 @click.version_option(version="1.0.0")
 def cli():
     """Berqenas Cloud & Security Platform CLI"""
     pass
+
+@cli.group()
+def config_cmd():
+    """Manage CLI configuration"""
+    pass
+
+@config_cmd.command("set-url")
+@click.argument("url")
+def config_set_url(url):
+    """Set API Base URL"""
+    config["api_url"] = url
+    save_config(config)
+    console.print(f"[bold green]✓ API URL set to {url}[/bold green]")
+
+@config_cmd.command("show")
+def config_show():
+    """Show current configuration"""
+    console.print(f"[cyan]API URL:[/cyan] {config.get('api_url')}")
+    console.print(f"[cyan]Token:[/cyan] {'[green]Set[/green]' if config.get('token') else '[red]Not set[/red]'}")
+
+@cli.command()
+@click.option("--url", help="API Base URL (e.g., http://api.berqenas.com/api/v1)")
+@click.option("--username", prompt=True, help="Username")
+@click.option("--password", prompt=True, hide_input=True, help="Password")
+def login(url, username, password):
+    """Login to Berqenas Platform"""
+    if url:
+        config["api_url"] = url
+    
+    target_url = config["api_url"]
+    console.print(f"[bold blue]Logging in to {target_url}...[/bold blue]")
+    
+    try:
+        # OAuth2 login requires form data (username, password)
+        response = requests.post(
+            f"{target_url}/auth/login",
+            data={"username": username, "password": password}
+        )
+        response.raise_for_status()
+        
+        token_data = response.json()
+        config["token"] = token_data["access_token"]
+        save_config(config)
+        
+        console.print("[bold green]✓ Login successful! Token saved.[/bold green]")
+    except requests.exceptions.RequestException as e:
+        console.print(f"[bold red]✗ Login failed: {e}[/bold red]")
+
+# Rename config group to avoid conflict with the variable 'config'
+cli.add_command(config_cmd, name="config")
 
 
 # Tenant Management Commands
@@ -53,7 +123,7 @@ def tenant_create(name: str, db_type: str, db_quota: int, max_connections: int, 
     }
     
     try:
-        response = requests.post(f"{API_BASE_URL}/tenant/", json=payload)
+        response = requests.post(f"{API_BASE_URL}/tenant/", json=payload, headers=get_headers())
         response.raise_for_status()
         
         data = response.json()
@@ -73,7 +143,7 @@ def tenant_create(name: str, db_type: str, db_quota: int, max_connections: int, 
 def tenant_list():
     """List all tenants"""
     try:
-        response = requests.get(f"{API_BASE_URL}/tenant/")
+        response = requests.get(f"{API_BASE_URL}/tenant/", headers=get_headers())
         response.raise_for_status()
         
         tenants = response.json()
@@ -111,7 +181,7 @@ def tenant_list():
 def tenant_delete(name: str, permanent: bool):
     """Delete a tenant"""
     try:
-        response = requests.delete(f"{API_BASE_URL}/tenant/{name}?permanent={permanent}")
+        response = requests.delete(f"{API_BASE_URL}/tenant/{name}?permanent={permanent}", headers=get_headers())
         response.raise_for_status()
         
         console.print(f"[bold green]✓ Tenant {name} deleted successfully[/bold green]")
@@ -132,7 +202,7 @@ def vpn():
 def vpn_enable(tenant: str):
     """Enable VPN for tenant"""
     try:
-        response = requests.post(f"{API_BASE_URL}/network/{tenant}/vpn/enable")
+        response = requests.post(f"{API_BASE_URL}/network/{tenant}/vpn/enable", headers=get_headers())
         response.raise_for_status()
         
         data = response.json()
@@ -156,7 +226,7 @@ def vpn_client_create(tenant: str, device: str, description: Optional[str]):
     }
     
     try:
-        response = requests.post(f"{API_BASE_URL}/network/{tenant}/vpn/client", json=payload)
+        response = requests.post(f"{API_BASE_URL}/network/{tenant}/vpn/client", json=payload, headers=get_headers())
         response.raise_for_status()
         
         data = response.json()
@@ -195,7 +265,7 @@ def firewall_add_rule(tenant: str, source: Optional[str], port: Optional[int],
     }
     
     try:
-        response = requests.post(f"{API_BASE_URL}/network/{tenant}/firewall/rule", json=payload)
+        response = requests.post(f"{API_BASE_URL}/network/{tenant}/firewall/rule", json=payload, headers=get_headers())
         response.raise_for_status()
         
         console.print(f"[bold green]✓ Firewall rule added[/bold green]")
@@ -212,7 +282,8 @@ def firewall_toggle_public(tenant: str, enabled: bool):
     try:
         response = requests.patch(
             f"{API_BASE_URL}/network/{tenant}/firewall/public-access",
-            params={"enabled": enabled}
+            params={"enabled": enabled},
+            headers=get_headers()
         )
         response.raise_for_status()
         
@@ -258,7 +329,7 @@ def gateway_expose(tenant: str, tenant_id: int, service_ip: str, service_port: i
     }
     
     try:
-        response = requests.post(f"{API_BASE_URL}/gateway/{tenant}/public-service", json=payload)
+        response = requests.post(f"{API_BASE_URL}/gateway/{tenant}/public-service", json=payload, headers=get_headers())
         response.raise_for_status()
         
         data = response.json()
@@ -277,7 +348,7 @@ def gateway_expose(tenant: str, tenant_id: int, service_ip: str, service_port: i
 def gateway_list(tenant: str):
     """List all public services for tenant"""
     try:
-        response = requests.get(f"{API_BASE_URL}/gateway/{tenant}/public-services")
+        response = requests.get(f"{API_BASE_URL}/gateway/{tenant}/public-services", headers=get_headers())
         response.raise_for_status()
         
         services = response.json()
@@ -319,7 +390,8 @@ def gateway_toggle(tenant: str, service_id: int, enabled: bool):
     try:
         response = requests.patch(
             f"{API_BASE_URL}/gateway/{tenant}/public-service/{service_id}/toggle",
-            json={"enabled": enabled}
+            json={"enabled": enabled},
+            headers=get_headers()
         )
         response.raise_for_status()
         
@@ -337,7 +409,7 @@ def gateway_toggle(tenant: str, service_id: int, enabled: bool):
 def gateway_remove(tenant: str, service_id: int):
     """Remove public service"""
     try:
-        response = requests.delete(f"{API_BASE_URL}/gateway/{tenant}/public-service/{service_id}")
+        response = requests.delete(f"{API_BASE_URL}/gateway/{tenant}/public-service/{service_id}", headers=get_headers())
         response.raise_for_status()
         
         console.print(f"[bold green]✓ Public service removed[/bold green]")
@@ -352,7 +424,7 @@ def gateway_remove(tenant: str, service_id: int):
 def gateway_stats(tenant: str, service_id: int):
     """Show traffic statistics for public service"""
     try:
-        response = requests.get(f"{API_BASE_URL}/gateway/{tenant}/public-service/{service_id}/stats")
+        response = requests.get(f"{API_BASE_URL}/gateway/{tenant}/public-service/{service_id}/stats", headers=get_headers())
         response.raise_for_status()
         
         stats = response.json()
@@ -398,7 +470,7 @@ def autogen_introspect(server: str, database: str, username: str, password: str,
     }
     
     try:
-        response = requests.post(f"{API_BASE_URL}/autogen/introspect", json=payload)
+        response = requests.post(f"{API_BASE_URL}/autogen/introspect", json=payload, headers=get_headers())
         response.raise_for_status()
         
         data = response.json()
@@ -461,7 +533,7 @@ def autogen_generate(server: str, database: str, username: str, password: str, s
     }
     
     try:
-        response = requests.post(f"{API_BASE_URL}/autogen/generate", json=payload)
+        response = requests.post(f"{API_BASE_URL}/autogen/generate", json=payload, headers=get_headers())
         response.raise_for_status()
         
         data = response.json()
@@ -491,7 +563,7 @@ def autogen_tenant_generate(tenant_name: str):
     console.print(f"[bold blue]Generating API for tenant: {tenant_name}...[/bold blue]")
     
     try:
-        response = requests.post(f"{API_BASE_URL}/autogen/tenant/{tenant_name}/generate")
+        response = requests.post(f"{API_BASE_URL}/autogen/tenant/{tenant_name}/generate", headers=get_headers())
         response.raise_for_status()
         
         data = response.json()
@@ -519,7 +591,7 @@ def autogen_tenant_tables(tenant_name: str):
     console.print(f"[bold blue]Fetching tables for tenant: {tenant_name}...[/bold blue]")
     
     try:
-        response = requests.get(f"{API_BASE_URL}/autogen/tenant/{tenant_name}/tables")
+        response = requests.get(f"{API_BASE_URL}/autogen/tenant/{tenant_name}/tables", headers=get_headers())
         response.raise_for_status()
         
         data = response.json()

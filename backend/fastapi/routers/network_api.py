@@ -13,7 +13,8 @@ from models.schemas import (
     SuccessResponse
 )
 
-router = APIRouter()
+from services.auth import get_current_active_user
+router = APIRouter(dependencies=[Depends(get_current_active_user)])
 logger = logging.getLogger(__name__)
 
 
@@ -64,28 +65,41 @@ async def disable_vpn(tenant: str):
 
 
 @router.post("/{tenant}/vpn/client", response_model=VPNClientResponse, status_code=status.HTTP_201_CREATED)
-async def create_vpn_client(tenant: str, client: VPNClientCreate):
+async def create_vpn_client(tenant: str, client_in: VPNClientCreate, db: Session = Depends(get_db)):
     """Create new VPN client for tenant"""
+    from services.network_manager import NetworkManager
+    from models.network import VPNClient as VPNClientModel
+    from models.tenant import Tenant as TenantModel
+    
     try:
-        logger.info(f"Creating VPN client for tenant {tenant}: {client.device_name}")
+        logger.info(f"Creating VPN client for tenant {tenant}: {client_in.device_name}")
         
-        # TODO: Generate client keys
-        # TODO: Add peer to WireGuard config
-        # TODO: Reload WireGuard
-        # TODO: Save to database
+        # 1. Fetch tenant to get subnet info
+        tenant_db = db.query(TenantModel).filter(TenantModel.name == tenant).first()
+        if not tenant_db:
+            raise HTTPException(status_code=404, detail="Tenant not found")
+            
+        # 2. Determine next IP
+        client_count = db.query(VPNClientModel).filter(VPNClientModel.tenant_name == tenant).count()
+        next_ip = tenant_db.vpn_subnet.replace(".0/24", f".{client_count + 2}")
         
-        # Mock response
-        response = VPNClientResponse(
-            id=1,
-            tenant=tenant,
-            device_name=client.device_name,
-            public_key="mock_public_key",
-            ip_address="10.50.1.2",
-            created_at="2026-01-14T12:00:00",
-            last_handshake=None
+        # 3. Provision in System
+        # Mocking keys for now since we don't have wg CLI in this env
+        mock_pubkey = f"pub_{uuid.uuid4().hex[:10]}"
+        NetworkManager.add_peer_to_interface("wg0", mock_pubkey, f"{next_ip}/32")
+        
+        # 4. Save to DB
+        new_client = VPNClientModel(
+            tenant_name=tenant,
+            device_name=client_in.device_name,
+            public_key=mock_pubkey,
+            ip_address=next_ip
         )
+        db.add(new_client)
+        db.commit()
+        db.refresh(new_client)
         
-        return response
+        return new_client
         
     except Exception as e:
         logger.error(f"Failed to create VPN client: {e}")
@@ -96,22 +110,10 @@ async def create_vpn_client(tenant: str, client: VPNClientCreate):
 
 
 @router.get("/{tenant}/vpn/clients", response_model=List[VPNClientResponse])
-async def list_vpn_clients(tenant: str):
+async def list_vpn_clients(tenant: str, db: Session = Depends(get_db)):
     """List all VPN clients for tenant"""
-    try:
-        logger.info(f"Listing VPN clients for tenant: {tenant}")
-        
-        # TODO: Query database
-        # TODO: Get WireGuard status
-        
-        return []
-        
-    except Exception as e:
-        logger.error(f"Failed to list VPN clients: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
-        )
+    from models.network import VPNClient as VPNClientModel
+    return db.query(VPNClientModel).filter(VPNClientModel.tenant_name == tenant).all()
 
 
 @router.delete("/{tenant}/vpn/client/{client_id}", response_model=SuccessResponse)
@@ -138,28 +140,30 @@ async def revoke_vpn_client(tenant: str, client_id: int):
 
 # Firewall Management
 @router.post("/{tenant}/firewall/rule", response_model=FirewallRuleResponse, status_code=status.HTTP_201_CREATED)
-async def add_firewall_rule(tenant: str, rule: FirewallRuleCreate):
+async def add_firewall_rule(tenant: str, rule_in: FirewallRuleCreate, db: Session = Depends(get_db)):
     """Add firewall rule for tenant"""
+    from models.network import FirewallRule as FirewallRuleModel
+    
     try:
-        logger.info(f"Adding firewall rule for tenant {tenant}")
+        logger.info(f"Adding firewall rule for tenant {tenant}: {rule_in.protocol}:{rule_in.destination_port}")
         
-        # TODO: Call firewall_rules.py
-        # TODO: Save to database
-        # TODO: Audit log
-        
-        # Mock response
-        response = FirewallRuleResponse(
-            id=1,
-            tenant=tenant,
-            source_ip=rule.source_ip,
-            destination_port=rule.destination_port,
-            protocol=rule.protocol,
-            action=rule.action,
-            comment=rule.comment,
-            created_at="2026-01-14T12:00:00"
+        # 1. Save to database
+        new_rule = FirewallRuleModel(
+            tenant_name=tenant,
+            source_ip=rule_in.source_ip,
+            destination_port=rule_in.destination_port,
+            protocol=rule_in.protocol.value if hasattr(rule_in.protocol, 'value') else str(rule_in.protocol),
+            action=rule_in.action.value if hasattr(rule_in.action, 'value') else str(rule_in.action),
+            comment=rule_in.comment
         )
+        db.add(new_rule)
+        db.commit()
+        db.refresh(new_rule)
         
-        return response
+        # 2. In production, we would call a system script here
+        # logger.info(f"UFW rule applied for {tenant}")
+        
+        return new_rule
         
     except Exception as e:
         logger.error(f"Failed to add firewall rule: {e}")
@@ -170,21 +174,10 @@ async def add_firewall_rule(tenant: str, rule: FirewallRuleCreate):
 
 
 @router.get("/{tenant}/firewall/rules", response_model=List[FirewallRuleResponse])
-async def list_firewall_rules(tenant: str):
+async def list_firewall_rules(tenant: str, db: Session = Depends(get_db)):
     """List all firewall rules for tenant"""
-    try:
-        logger.info(f"Listing firewall rules for tenant: {tenant}")
-        
-        # TODO: Query database
-        
-        return []
-        
-    except Exception as e:
-        logger.error(f"Failed to list firewall rules: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
-        )
+    from models.network import FirewallRule as FirewallRuleModel
+    return db.query(FirewallRuleModel).filter(FirewallRuleModel.tenant_name == tenant).all()
 
 
 @router.delete("/{tenant}/firewall/rule/{rule_id}", response_model=SuccessResponse)

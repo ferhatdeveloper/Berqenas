@@ -101,6 +101,9 @@ async def root():
 
 
 # Include routers
+from routers import auth_api
+app.include_router(auth_api.router, prefix="/api/v1/auth", tags=["Authentication"])
+
 app.include_router(tenant_api.router, prefix="/api/v1/tenant", tags=["Tenant Management"])
 app.include_router(network_api.router, prefix="/api/v1/network", tags=["Network & VPN"])
 app.include_router(security_api.router, prefix="/api/v1/security", tags=["Security & Audit"])
@@ -109,6 +112,16 @@ app.include_router(billing_api.router, prefix="/api/v1/billing", tags=["Billing 
 app.include_router(gateway_api.router, prefix="/api/v1/gateway", tags=["Gateway & NAT"])
 app.include_router(autogen_api.router, prefix="/api/v1/autogen", tags=["Auto-API Generator"])
 app.include_router(remote_sync_api.router, prefix="/api/v1/sync", tags=["Remote Database Sync"])
+from routers import dashboard_api
+app.include_router(dashboard_api.router, prefix="/api/v1/dashboard", tags=["Dashboard Stats"])
+
+# Create database tables
+from database import engine, Base
+import models.user
+import models.remote
+import models.tenant
+import models.network
+Base.metadata.create_all(bind=engine)
 
 
 if __name__ == "__main__":

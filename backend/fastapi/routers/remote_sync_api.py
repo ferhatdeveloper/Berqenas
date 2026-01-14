@@ -16,7 +16,9 @@ from pydantic import BaseModel
 # Create tables if not exist
 Base.metadata.create_all(bind=engine)
 
-router = APIRouter()
+from services.auth import get_current_active_user
+
+router = APIRouter(dependencies=[Depends(get_current_active_user)])
 logger = logging.getLogger(__name__)
 
 
@@ -105,34 +107,44 @@ async def sync_remote_database(
     db.commit()
 
     def sync_task(job_id: int):
-        # Simulation of sync logic
-        # In real code, connect to remote_db using connection details
+        from services.hasura_service import HasuraService
+        from models.remote import SyncLog
         import time
+        
+        db = SessionLocal()
         try:
-            time.sleep(5) # Simulate work
+            # log starting
+            db.add(SyncLog(job_id=job_id, level="info", message="Starting bi-directional sync"))
+            db.commit()
+            
+            time.sleep(2) # Simulate work
             
             # Update job status
-            with Session(engine) as session:
-                j = session.query(SyncJob).filter(SyncJob.id == job_id).first()
-                if j:
-                    j.status = "completed"
-                    j.completed_at = datetime.utcnow()
-                    j.records_synced = 42
-                    
-                    # Update DB last sync
-                    r = session.query(RemoteDatabase).filter(RemoteDatabase.id == j.remote_db_id).first()
-                    if r: r.last_sync = datetime.utcnow()
-                    
-                    session.commit()
-            logger.info(f"Sync job {job_id} completed")
+            j = db.query(SyncJob).filter(SyncJob.id == job_id).first()
+            if j:
+                j.status = "completed"
+                j.completed_at = datetime.utcnow()
+                j.records_synced = 100 # Mock count
+                
+                # Update DB last sync
+                r = db.query(RemoteDatabase).filter(RemoteDatabase.id == j.remote_db_id).first()
+                if r: 
+                    r.last_sync = datetime.utcnow()
+                    if r.api_enabled:
+                        HasuraService.track_table("remote_data", schema=r.schema)
+                
+                db.add(SyncLog(job_id=job_id, level="info", message="Sync completed successfully"))
+                db.commit()
             
         except Exception as e:
-             with Session(engine) as session:
-                j = session.query(SyncJob).filter(SyncJob.id == job_id).first()
-                if j:
-                    j.status = "failed"
-                    j.error_message = str(e)
-                    session.commit()
+            j = db.query(SyncJob).filter(SyncJob.id == job_id).first()
+            if j:
+                j.status = "failed"
+                j.error_message = str(e)
+                db.add(SyncLog(job_id=job_id, level="error", message=f"Sync failed: {e}"))
+                db.commit()
+        finally:
+            db.close()
 
     background_tasks.add_task(sync_task, job.id)
     

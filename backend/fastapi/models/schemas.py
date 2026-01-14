@@ -228,6 +228,40 @@ class QuotaResponse(BaseModel):
         from_attributes = True
 
 
+# Auth Models
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class TokenData(BaseModel):
+    username: Optional[str] = None
+
+
+class UserBase(BaseModel):
+    username: str
+    email: Optional[str] = None
+    full_name: Optional[str] = None
+    is_active: Optional[bool] = True
+
+
+class UserCreate(UserBase):
+    password: str
+
+
+class UserUpdate(BaseModel):
+    email: Optional[str] = None
+    full_name: Optional[str] = None
+    password: Optional[str] = None
+
+
+class UserResponse(UserBase):
+    id: int
+
+    class Config:
+        from_attributes = True
+
+
 # API Response Models
 class SuccessResponse(BaseModel):
     success: bool = True

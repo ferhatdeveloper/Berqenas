@@ -1,39 +1,68 @@
 version: '3.8'
 
 services:
-  # --- Backend Service ---
-  backend:
-    build: result/fastapi
+  # --- Nginx Proxy Manager (SSL & Subdomain Management) ---
+  proxy:
+    image: 'jc21/nginx-proxy-manager:latest'
     restart: always
     ports:
-      - "8000:8000"
-    environment:
-      - DATABASE_URL=postgresql://berqenas:securepass@db:5432/berqenas
-      - WIREGUARD_CONFIG_PATH=/etc/wireguard
+      - '80:80'
+      - '81:81' # Admin Dashboard
+      - '443:443'
+    volumes:
+      - ./infra/proxy/data:/data
+      - ./infra/proxy/letsencrypt:/etc/letsencrypt
+    depends_on:
+      - backend
+      - frontend
+
+  # --- Backend Service (FastAPI) ---
+  backend:
+    build: ./backend/fastapi
+    restart: always
+    # Port mapping removed here, proxy will handle external access
+    env_file:
+      - ./backend/fastapi/.env
     depends_on:
       - db
+      - redis
     volumes:
       - wg_config:/etc/wireguard
 
-  # --- Frontend Panel ---
+  # --- Frontend Panel (React) ---
   frontend:
-    build: .
+    build: ./frontend/panel
     restart: always
-    ports:
-      - "80:80"
+    # Port mapping removed here, proxy will handle external access
     depends_on:
       - backend
+
+  # --- Redis (for Sync & Celery) ---
+  redis:
+    image: redis:7-alpine
+    restart: always
 
   # --- System Database (PostgreSQL) ---
   db:
     image: postgres:15-alpine
     restart: always
     environment:
-      - POSTGRES_USER=berqenas
-      - POSTGRES_PASSWORD=securepass
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-securepass}
       - POSTGRES_DB=berqenas
     volumes:
       - postgres_data:/var/lib/postgresql/data
+
+  # --- Hasura GraphQL Engine ---
+  hasura:
+    image: hasura/graphql-engine:v2.38.0
+    restart: always
+    environment:
+      - HASURA_GRAPHQL_DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-securepass}@db:5432/berqenas
+      - HASURA_GRAPHQL_ENABLE_CONSOLE=false
+      - HASURA_GRAPHQL_ADMIN_SECRET=berqenas_admin_secret_123
+    depends_on:
+      - db
 
   # --- WireGuard Gateway ---
   wireguard:

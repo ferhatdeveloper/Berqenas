@@ -1,72 +1,41 @@
-# Berqenas Platform - Gap Analysis & Requirements
+# Berqenas Platform - Gap Analysis & Deep Completion Roadmap (v1.2)
 
-## 🚨 Critical Gaps (Must Fix for Functionality)
+## ✅ Completed & Verified
+- **Frontend Connectivity**: All pages (Tenants, Remote DBs, Dashboard, VPN, Gateway) are now connected to the FastAPI backend via `api.ts`.
+- **Headless API Engine**: Hasura is integrated into `docker-compose.yml` and managed via `HasuraService`.
+- **Infrastructure**: Full Docker stack defined (Frontend, Backend, DB, Hasura, WireGuard, Redis).
+- **Git Setup**: Local repository initialized and initial commit completed.
 
-### 1. Backend Implementation (Skeleton Only)
-The current backend files are architectural skeletons. The actual logic is replaced with `TODO` comments.
-- **Bi-Directional Sync (`bidirectional_sync.py`)**:
-  - `_detect_changes_mssql`: Query logic exists but no database execution.
-  - `_detect_changes_postgres`: Returns empty list.
-  - `_apply_changes_to_local`: Returns 0, no DB write.
-  - `_apply_changes_to_cloud`: Returns 0, no DB write.
-- **Remote Sync API (`remote_sync_api.py`)**:
-  - `register_remote_database`: Returns mock success, doesn't save to DB.
-  - `sync_remote_database`: Background task is empty.
-  - `get_remote_db_status`: Returns hardcoded static data.
+## 🚨 Critical "Deep" Gaps (The "Mock" Problem)
+The deep audit revealed that while the project looks "complete" from the UI, the core system logic is largely composed of **Architectural Skeletons (Mocks)**.
 
-### 2. Database Integration
-- **Missing Persistence**: No database models or tables created for:
-  - `remote_databases` (to store connection details)
-  - `sync_jobs` (to track history)
-  - `sync_conflicts` (to store unresolved conflicts)
-- **Credential Storage**: Database passwords are currently passed in JSON, need secure storage (Vault or Encrypted DB column).
+### 1. Authentication & Security
+- **Backend**: NO JWT logic. Routers exist but lack security deps. Endpoints are unprotected.
+- **Frontend**: NO Login/Register screens. Tokens are not handled.
+- **Secrets**: Database passwords for remote connections are stored/transmitted in plain text.
 
-### 3. WireGuard Integration
-- **No Automation**: API endpoints for VPN do not actually call the `wg` command or generate config files.
-- **Connectivity Check**: `_check_wireguard_status` is not implemented (mocked).
+### 2. System Level Operations
+- **Tenant Provisioner**: The API claims to create a tenant, but no PostgreSQL schema, user, or role is actually created on the database server.
+- **WireGuard Manager**: The VPN page buttons "Add Client" send requests, but no WireGuard `.conf` files are generated, and `wg` service is not reloaded.
+- **Firewall/NAT**: Gateway exposure logic is currently just `logger.info`. It does not interact with `ufw` or `iptables`.
+
+### 3. Data Sync Engine
+- **Logic**: `bidirectional_sync.py` has the structure for change detection but returns hardcoded 0s or empty lists.
+- **Reliability**: Sync jobs run inside the FastAPI process; they should be moved to Celery/Redis for production resilience.
 
 ---
 
-## ⚠️ Important Gaps (Needed for Production)
+## 🗺️ Deep Completion Roadmap (TODO List)
 
-### 1. Frontend Integration
-- **Mock Data**: React pages (`TenantsPage.tsx`, `Dashboard.tsx`, etc.) use `useState` with hardcoded arrays. They do not call the `api.ts` services.
-- **Authentication**:
-  - Frontend has no login flow / JWT storage.
-  - Backend endpoints are unprotected (no `Depends(get_current_user)`).
+### Phase 9: Security & Real Logic
+- [ ] **JWT Auth System**: Implement `auth.py` and secure all routers.
+- [ ] **Provisioning Service**: Implement real PostgreSQL schema/role automation.
+- [ ] **Network Service**: Implement real WireGuard and Iptables command execution.
 
-### 2. Auto-API Generator
-- **Type Mapping**: Current mapper is basic. Needs comprehensive mapping for all SQL types (e.g., `geometry`, `jsonb`, `money`).
-- **Dynamic Reload**: When a new API is generated, the FastAPI server needs to reload or dynamically mount the new router without downtime. currently, it requires a restart.
+### Phase 10: Advanced Data Flow
+- [ ] **Real-time Sync**: Implement RowVersion-based delta sync for MSSQL.
+- [ ] **Hasura Automation**: Automatically track/untrack tables in Hasura based on sync results.
 
----
-
-## 🎨 Nice-to-Have (Future Improvements)
-
-### 1. Monitoring & Alerts
-- Real-time WebSocket updates for sync status on the dashboard.
-- Email/Slack alerts for failed syncs or critical conflicts.
-
-### 2. Orchestration
-- **Docker Compose**: A `docker-compose.yml` to spin up:
-  - Berqenas Backend (FastAPI)
-  - Berqenas Frontend (Vite)
-  - PostgreSQL (System DB)
-  - WireGuard container
-
----
-
-## 🗺️ Recommended Roadmap
-
-### Phase 1: Core Functionality (Next Session)
-1.  **Implement DB Models**: Create SQLAlchemy/Pydantic models for `RemoteDatabase` and `SyncJob`.
-2.  **Flesh out Sync Logic**: Write the actual `cursor.execute` code in `bidirectional_sync.py`.
-3.  **Real API Integration**: Update React pages to `useEffect(() => api.tenants.list()...)` instead of mock data.
-
-### Phase 2: Security & Networking
-1.  **Implement JWT Auth**: Secure the backend and add Login page logic.
-2.  **WireGuard Scripting**: Connect python subproccess calls to actual `wg` CLI commands.
-
-### Phase 3: Polish
-1.  **Dockerization**: Containerize the app for easy deployment.
-2.  **Unit Testing**: Verify sync logic with test databases.
+### Phase 11: Production Deployment
+- [ ] **CLI Security**: Secure the CLI tool with API keys.
+- [ ] **Monitoring**: Add health checks for VPN and Remote DB connections.

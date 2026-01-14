@@ -42,3 +42,26 @@ class SyncJob(Base):
     error_message = Column(Text, nullable=True)
 
     remote_db = relationship("RemoteDatabase", back_populates="sync_jobs")
+
+
+class SyncConflict(Base):
+    __tablename__ = "sync_conflicts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    job_id = Column(Integer, ForeignKey("sync_jobs.id"), nullable=False)
+    table_name = Column(String, nullable=False)
+    primary_key_value = Column(String, nullable=False)
+    cloud_data = Column(Text)  # JSON string
+    local_data = Column(Text)  # JSON string
+    resolution = Column(String, nullable=True)  # cloud_wins, local_wins, manual
+    resolved_at = Column(DateTime, nullable=True)
+
+
+class SyncLog(Base) :
+    __tablename__ = "sync_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    job_id = Column(Integer, ForeignKey("sync_jobs.id"), nullable=False)
+    level = Column(String, default="info")  # info, warning, error
+    message = Column(String, nullable=False)
+    timestamp = Column(DateTime, server_default=func.now())
