@@ -62,6 +62,17 @@ python3 install.py
 5. It builds 5 Docker Containers: Backend, Frontend, Queue(Redis), DB, Proxy.
 6. It initializes the database schema.
 
+### 🔄 How to Update System?
+To update your Berqenas installation when new features are released:
+
+```bash
+cd Berqenas
+git pull origin main
+docker compose up -d --build
+docker image prune -f  # (Optional: Clean up old images)
+```
+Config and Data will remain SAFE.
+
 ### 4. Operation Manual (How-to)
 **Access Points:**
 - **Main Panel**: `https://yourdomain.com`
@@ -166,6 +177,17 @@ python3 install.py
 4. 5 adet Servisi (Backend, Frontend, Redis, DB, Proxy) kurar ve başlatır.
 5. Veritabanını kullanıma hazır hale getirir.
 
+### 🔄 Sistem Nasıl Güncellenir?
+Yeni özellikler geldiğinde sisteminizi güncellemek çok basittir:
+
+```bash
+cd Berqenas
+git pull origin main
+docker compose up -d --build
+docker image prune -f  # (Opsiyonel: Eski imajları temizler)
+```
+Merak etmeyin; Veritabanı, Ayarlar ve SSL sertifikalarınız **SİLİNMEZ**, korunur.
+
 ### 4. Kullanım ve Operasyon Kılavuzu
 **Erişim Noktaları:**
 - **Ana Panel**: `https://alanadiniz.com`
@@ -234,7 +256,15 @@ Please refer to the English section for detailed technical specifications. / Bit
 ```bash
 git clone https://github.com/ferhatdeveloper/Berqenas.git && cd Berqenas
 python3 install.py
+
+## günceleme
+
+cd Berqenas
+git pull origin main           # 1. Yeni kodları indir
+docker compose up -d --build   # 2. Konteynerleri yeni kodla yeniden oluştur
 ```
+
+
 
 ## 📊 Technical Specs Summary
 

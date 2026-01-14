@@ -70,8 +70,8 @@ function Sidebar() {
                 <Link
                   to={item.path}
                   className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${isActive
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-300 hover:bg-gray-700 hover:text-white'
                     }`}
                 >
                   <item.icon className="w-5 h-5" />
@@ -110,35 +110,31 @@ function Sidebar() {
 
 function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route
-            path="/*"
-            element={
-              <ProtectedRoute>
-                <div className="flex h-screen bg-gray-900">
-                  <Sidebar />
-                  <div className="flex-1 overflow-y-auto">
-                    <Routes>
-                      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                      <Route path="/dashboard" element={<BerqenasDashboard />} />
-                      <Route path="/tenants" element={<TenantsPage />} />
-                      <Route path="/databases" element={<RemoteDatabasesPage />} />
-                      <Route path="/auto-api" element={<AutoAPIGeneratorPage />} />
-                      <Route path="/vpn" element={<VPNNetworkPage />} />
-                      <Route path="/gateway" element={<GatewayNATPage />} />
-                      <Route path="/settings" element={<SettingsPage />} />
-                    </Routes>
-                  </div>
-                </div>
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route
+        path="/*"
+        element={
+          <ProtectedRoute>
+            <div className="flex h-screen bg-gray-900">
+              <Sidebar />
+              <div className="flex-1 overflow-y-auto">
+                <Routes>
+                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/dashboard" element={<BerqenasDashboard />} />
+                  <Route path="/tenants" element={<TenantsPage />} />
+                  <Route path="/databases" element={<RemoteDatabasesPage />} />
+                  <Route path="/auto-api" element={<AutoAPIGeneratorPage />} />
+                  <Route path="/vpn" element={<VPNNetworkPage />} />
+                  <Route path="/gateway" element={<GatewayNATPage />} />
+                  <Route path="/settings" element={<SettingsPage />} />
+                </Routes>
+              </div>
+            </div>
+          </ProtectedRoute>
+        }
+      />
+    </Routes>
   );
 }
 
