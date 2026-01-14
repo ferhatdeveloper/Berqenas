@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  # --- Backend Service ---
+  backend:
+    build: result/fastapi
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://berqenas:securepass@db:5432/berqenas
+      - WIREGUARD_CONFIG_PATH=/etc/wireguard
+    depends_on:
+      - db
+    volumes:
+      - wg_config:/etc/wireguard
+
+  # --- Frontend Panel ---
+  frontend:
+    build: .
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+  # --- System Database (PostgreSQL) ---
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=berqenas
+      - POSTGRES_PASSWORD=securepass
+      - POSTGRES_DB=berqenas
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # --- WireGuard Gateway ---
+  wireguard:
+    image: linuxserver/wireguard
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Istanbul
+    volumes:
+      - wg_config:/config
+      - /lib/modules:/lib/modules
+    ports:
+      - "51820:51820/udp"
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+
+volumes:
+  postgres_data:
+  wg_config:

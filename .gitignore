@@ -1,0 +1,85 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Backups (exclude backup files but allow scripts)
+backups/
+*.backup
+*.bak
+!backups/*.sql
+!backups/*.sql.gz
+
+# Docker
+docker-compose.override.yml
+
+# Backup files (only in backups directory)
+backups/*.sql
+backups/*.sql.gz
+backups/*.backup
+backups/*.bak
+
+# WireGuard
+*.conf
+*.key
+*.pub
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Node (if frontend is added)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Certificates
+*.pem
+*.crt
+*.key

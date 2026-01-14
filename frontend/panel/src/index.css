@@ -1,0 +1,90 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --sb-bg: #f8fafb;
+  --sb-border: #e9ecef;
+  --sb-header: #94a3b8;
+  --sb-primary: #3b82f6;
+  --sb-success: #22c55e;
+  --sb-warning: #facc15;
+  --sb-muted: #f1f5f9;
+  --sb-placeholder: #94a3b8;
+}
+
+body {
+  background: var(--sb-bg);
+}
+
+/* Supabase-style butonlar */
+.btn-sb {
+  @apply px-3 py-1.5 rounded border text-sm font-medium transition-colors;
+  border-color: var(--sb-border);
+  background: white;
+  color: #334155;
+}
+.btn-sb-green {
+  @apply btn-sb;
+  background: var(--sb-success);
+  color: white;
+  border: none;
+}
+.btn-sb-green:hover {
+  background: #16a34a;
+}
+.btn-sb-outline {
+  @apply btn-sb;
+  background: white;
+  color: var(--sb-primary);
+  border-color: var(--sb-primary);
+}
+.btn-sb-outline:hover {
+  background: var(--sb-muted);
+}
+.btn-sb-muted {
+  @apply btn-sb;
+  background: var(--sb-muted);
+  color: #64748b;
+  border: none;
+}
+
+/* Supabase-style input */
+.input-sb {
+  @apply border rounded px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 transition;
+  border-color: var(--sb-border);
+  background: #fff;
+  color: #334155;
+}
+.input-sb::placeholder {
+  color: var(--sb-placeholder);
+  opacity: 1;
+}
+
+/* Supabase-style grid header */
+.th-sb {
+  @apply font-medium text-xs text-[var(--sb-header)] bg-[var(--sb-muted)] px-4 py-2 whitespace-nowrap;
+}
+.td-sb {
+  @apply text-sm text-gray-800 px-4 py-2 whitespace-nowrap;
+}
+.tr-hover-sb:hover {
+  background: var(--sb-muted);
+}
+
+/* Supabase-style sidebar */
+.sidebar-sb {
+  @apply bg-white border-r border-[var(--sb-border)] flex flex-col;
+}
+.sidebar-active-sb {
+  @apply bg-[var(--sb-muted)] font-semibold text-[var(--sb-primary)];
+}
+.sidebar-item-sb {
+  @apply flex items-center gap-2 px-4 py-1.5 text-sm rounded hover:bg-[var(--sb-muted)] text-gray-700;
+}
+
+/* Supabase-style alt bar */
+.altbar-sb {
+  @apply flex items-center justify-between border-t bg-white px-4 py-2 text-xs text-gray-500;
+  border-color: var(--sb-border);
+} 
