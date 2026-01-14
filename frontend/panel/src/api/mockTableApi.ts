@@ -62,4 +62,4 @@ export async function deleteRow(tableName: string, rowIndex: number) {
     return true;
   }
   throw new Error('Row not found');
-} oksa kalan diğer modern özelliklerle devam
+}

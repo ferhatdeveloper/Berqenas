@@ -4,7 +4,11 @@ FROM node:18-alpine as build
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install
+
+# Clean install to avoid lockfile issues and increase memory for build
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+RUN rm -rf package-lock.json node_modules && \
+    npm install --legacy-peer-deps
 
 COPY . .
 RUN npm run build

@@ -22,13 +22,48 @@ def install():
     print("   Berqenas Cloud & Security - Tek Komut Kurulum   ")
     print("====================================================\n")
     
-    print("[Aşama 1/3] Sistem Kontrolleri")
+    print("[Aşama 1/3] Sistem ve Gereksinim Kontrolleri")
     
-    # Check OS
-    if not (sys.platform.startswith("linux") or sys.platform.startswith("darwin")):
-        print("[!] Uyarı: Bu script en iyi Linux (Ubuntu/Debian) üzerinde çalışır.")
+    # 1. OS Check & Full System Update
+    if sys.platform.startswith("linux"):
+        print("[*] Ubuntu/Debian sistem güncellemeleri kontrol ediliyor...")
+        print("[*] 'apt-get update && apt-get upgrade' çalıştırılıyor (Bu işlem biraz sürebilir)...")
+        run_command("apt-get update && DEBIAN_FRONTEND=noninteractive apt-get upgrade -y")
+        print("[✓] Sistem güncellendi.")
+    elif not sys.platform.startswith("darwin"):
+         print("[!] Uyarı: Bu script en iyi Linux (Ubuntu/Debian) üzerinde çalışır.")
+        
+    # 2. System Packages Check & Install
+    missing_pkgs = []
+    for pkg in ["curl", "git"]:
+        if subprocess.call(["which", pkg], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) != 0:
+            missing_pkgs.append(pkg)
     
-    # Automate Docker Installation
+    if missing_pkgs:
+        print(f"[*] Eksik paketler tespit edildi: {', '.join(missing_pkgs)}. Kuruluyor...")
+        run_command(f"apt-get update && apt-get install -y {' '.join(missing_pkgs)}")
+
+    # 3. Port Conflict Check (80, 443)
+    def check_port(port):
+        import socket
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        result = sock.connect_ex(('127.0.0.1', port))
+        sock.close()
+        return result == 0
+
+    conflicting_services = []
+    if check_port(80): conflicting_services.append("HTTP (Port 80)")
+    if check_port(443): conflicting_services.append("HTTPS (Port 443)")
+    
+    if conflicting_services:
+        print(f"[!] DİKKAT: Şu portlar dolu görünüyor: {', '.join(conflicting_services)}")
+        print("[*] Sistemdeki Apache/Nginx servisleri portları işgal ediyor olabilir.")
+        print("[*] Çakışan servisler durdurulmaya çalışılıyor...")
+        run_command("systemctl stop apache2 nginx || true")
+        run_command("systemctl disable apache2 nginx || true")
+        time.sleep(2)
+
+    # 4. Automate Docker Installation
     try:
         subprocess.run(["docker", "--version"], capture_output=True, check=True)
         print("[✓] Docker bulundu.")
