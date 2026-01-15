@@ -16,6 +16,8 @@ from models.schemas import (
 
 from services.auth import get_current_active_user
 from models.user import User
+from sqlalchemy.orm import Session
+from database import get_db
 
 router = APIRouter(dependencies=[Depends(get_current_active_user)])
 logger = logging.getLogger(__name__)
