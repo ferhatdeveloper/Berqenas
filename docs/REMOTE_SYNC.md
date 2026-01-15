@@ -290,3 +290,4 @@ berqenas sync logs acme_erp --tail 100
 For issues or questions:
 - Documentation: docs/REMOTE_SYNC.md
 - Support: support@berqenas.com
+

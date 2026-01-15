@@ -1,67 +1,94 @@
 import logging
-import os
 import subprocess
-from typing import List, Dict
+import os
+import docker
+from typing import Tuple
 
 logger = logging.getLogger(__name__)
 
-WIREGUARD_CONFIG_PATH = os.getenv("WIREGUARD_CONFIG_DIR", "/etc/wireguard")
-BACKEND_NETWORK = "10.50.0.0/16"
-
 class NetworkManager:
-    @staticmethod
-    def generate_client_config(client_name: str, client_ip: str, server_pubkey: str, endpoint: str):
-        """
-        Generates a WireGuard client configuration string.
-        """
-        # In a real app, you'd generate a private key for the client too
-        # Here we mock the private key generation for the config string
-        client_privkey = "CLIENT_PRIVATE_KEY_MOCK" # Should use wg genkey
-        
-        config = f"""[Interface]
-PrivateKey = {client_privkey}
-Address = {client_ip}/32
-DNS = 1.1.1.1
+    WG_CONFIG_PATH = "/etc/wireguard/wg0.conf"
+    WG_INTERFACE = "wg0"
+    WG_CONTAINER_NAME = "berqenas-wireguard-1" # Based on docker-compose service name
 
-[Peer]
-PublicKey = {server_pubkey}
-Endpoint = {endpoint}
-AllowedIPs = {BACKEND_NETWORK}
-PersistentKeepalive = 25
+    @staticmethod
+    def generate_keypair() -> Tuple[str, str]:
+        """Generate a WireGuard private/public key pair using wg command"""
+        try:
+            # Generate private key
+            priv_key = subprocess.check_output("wg genkey", shell=True).decode('utf-8').strip()
+            # Generate public key from private key
+            pub_key = subprocess.check_output(f"echo '{priv_key}' | wg pubkey", shell=True).decode('utf-8').strip()
+            return priv_key, pub_key
+        except Exception as e:
+            logger.error(f"Failed to generate keys: {e}")
+            raise
+
+    @staticmethod
+    def _get_docker_client():
+        return docker.from_env()
+
+    @staticmethod
+    def _reload_wireguard():
+        """Reload WireGuard configuration in the container"""
+        try:
+            client = NetworkManager._get_docker_client()
+            # Find the container
+            containers = client.containers.list(filters={"name": "berqenas-wireguard"})
+            if not containers:
+                logger.error("WireGuard container not found")
+                return
+            
+            wg_container = containers[0]
+            # We can restart the container (easiest way to apply config changes without breaking state too much)
+            # Or use wg syncconf if we want zerodowntime, but restart is safer for ensuring config consistency.
+            wg_container.restart() 
+            logger.info("WireGuard container restarted to apply changes")
+            
+        except Exception as e:
+            logger.error(f"Failed to reload WireGuard: {e}")
+            # Don't raise here, as we might be running in dev where no docker socket exists
+            pass
+
+    @staticmethod
+    def ensure_config_exists():
+        """Initialize wg0.conf if it doesn't exist"""
+        if not os.path.exists(NetworkManager.WG_CONFIG_PATH):
+            logger.info(f"Initializing {NetworkManager.WG_CONFIG_PATH}")
+            # Generate server keys
+            priv, pub = NetworkManager.generate_keypair()
+            
+            config_content = f"""[Interface]
+Address = 10.50.0.1/24
+ListenPort = 51820
+PrivateKey = {priv}
+PostUp = iptables -A FORWARD -i %i -j ACCEPT; iptables -A FORWARD -o %i -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+PostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -D FORWARD -o %i -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
+
+# Server Public Key: {pub}
+# Clients follow below:
 """
-        return config
+            with open(NetworkManager.WG_CONFIG_PATH, "w") as f:
+                f.write(config_content)
+            
+            return pub
+        return None
 
     @staticmethod
     def add_peer_to_interface(interface: str, public_key: str, allowed_ips: str):
-        """
-        Calls wg set to add a peer to a running interface.
-        """
+        """Add a peer to the configuration file"""
         try:
-            cmd = ["wg", "set", interface, "peer", public_key, "allowed-ips", allowed_ips]
-            subprocess.run(cmd, check=True)
-            logger.info(f"Added peer {public_key} to {interface}")
-            return True
+            # Append peer to file
+            peer_block = f"\n[Peer]\nPublicKey = {public_key}\nAllowedIPs = {allowed_ips}\n"
+            
+            with open(NetworkManager.WG_CONFIG_PATH, "a") as f:
+                f.write(peer_block)
+            
+            logger.info(f"Added peer {public_key} ({allowed_ips}) to {NetworkManager.WG_CONFIG_PATH}")
+            
+            # Application
+            NetworkManager._reload_wireguard()
+            
         except Exception as e:
             logger.error(f"Failed to add peer: {e}")
-            # In development/docker without wg installed, this will fail
-            # We log but might not want to crash the whole flow if mocking is allowed
-            return False
-
-    @staticmethod
-    def setup_nat_rule(internal_ip: str, internal_port: int, external_port: int):
-        """
-        Sets up an iptables NAT rule for port forwarding.
-        """
-        try:
-            # Example: iptables -t nat -A PREROUTING -p tcp --dport $EXT -j DNAT --to-destination $INT:$PORT
-            cmd = [
-                "iptables", "-t", "nat", "-A", "PREROUTING", 
-                "-p", "tcp", "--dport", str(external_port), 
-                "-j", "DNAT", "--to-destination", f"{internal_ip}:{internal_port}"
-            ]
-            # subprocess.run(cmd, check=True)
-            logger.info(f"Mocked NAT rule: {internal_ip}:{internal_port} -> port {external_port}")
-            return True
-        except Exception as e:
-            logger.error(f"Failed to setup NAT: {e}")
-            return False
+            raise

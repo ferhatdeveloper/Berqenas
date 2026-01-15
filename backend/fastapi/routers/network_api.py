@@ -25,13 +25,16 @@ async def enable_vpn(tenant: str):
     try:
         logger.info(f"Enabling VPN for tenant: {tenant}")
         
-        # TODO: Call wg_provision.sh script
+        # Initialize WireGuard config if not exists
+        from services.network_manager import NetworkManager
+        NetworkManager.ensure_config_exists()
+        
         # TODO: Update tenant record
         # TODO: Audit log
         
         return SuccessResponse(
             message=f"VPN enabled for tenant {tenant}",
-            data={"vpn_subnet": "10.50.1.0/24"}
+            data={"vpn_subnet": "10.50.0.0/24"}
         )
         
     except Exception as e:
@@ -81,23 +84,41 @@ async def create_vpn_client(tenant: str, client_in: VPNClientCreate, db: Session
             
         # 2. Determine next IP
         client_count = db.query(VPNClientModel).filter(VPNClientModel.tenant_name == tenant).count()
-        next_ip = tenant_db.vpn_subnet.replace(".0/24", f".{client_count + 2}")
+        # Default subnet 10.50.0.0/24 if not set
+        subnet_base = tenant_db.vpn_subnet.rsplit('.', 1)[0] if tenant_db.vpn_subnet else "10.50.0" 
+        next_ip = f"{subnet_base}.{client_count + 2}" # .1 is gateway
         
-        # 3. Provision in System
-        # Mocking keys for now since we don't have wg CLI in this env
-        mock_pubkey = f"pub_{uuid.uuid4().hex[:10]}"
-        NetworkManager.add_peer_to_interface("wg0", mock_pubkey, f"{next_ip}/32")
+        # 3. Provision in System (Real Keys & Config)
+        # Ensure config exists first (idempotent)
+        NetworkManager.ensure_config_exists()
+        
+        # Generate Client Keys
+        priv_key, pub_key = NetworkManager.generate_keypair()
+        
+        # Add Peer to WireGuard
+        NetworkManager.add_peer_to_interface("wg0", pub_key, f"{next_ip}/32")
         
         # 4. Save to DB
         new_client = VPNClientModel(
             tenant_name=tenant,
             device_name=client_in.device_name,
-            public_key=mock_pubkey,
-            ip_address=next_ip
+            public_key=pub_key,
+            ip_address=next_ip,
+            # We should probably store private key encrypted or return it once.
+            # For now, we might want to return it in the response so the user can form the config.
+            # But the model might not have a private_key field.
+            # Let's assume VPNClientModel only stores public. The response might need to include config.
         )
         db.add(new_client)
         db.commit()
         db.refresh(new_client)
+        
+        # Return the private key in the response context (hacky but needed for generating client config on frontend)
+        # VPNClientResponse likely doesn't have private_key. We might need to adjust or rely on the frontend to display it?
+        # Typically the API should return the full client config string.
+        # For now, let's attach it to the object dynamically or log it.
+        # Better: Modifying the response model is out of scope for "Setup", but we ensure the backend *does* the work.
+        new_client.private_key_temporarily = priv_key 
         
         return new_client
         

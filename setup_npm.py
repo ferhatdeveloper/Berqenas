@@ -23,10 +23,17 @@ def get_token(email, password):
             result = json.loads(response.read().decode('utf-8'))
             return result.get('token')
     except urllib.error.HTTPError as e:
-        if e.code == 400:
-            print(f"[!] Login Error 400 Body: {e.read().decode('utf-8')}")
-        if e.code == 401: # Auth failed
+        try:
+            error_body = e.read().decode('utf-8')
+        except:
+            error_body = ""
+
+        if e.code == 400 or e.code == 401:
+            # NPM returns 400 for "Invalid email or password"
+            print(f"[!] Login failed ({e.code}): {error_body}")
             return None
+            
+        print(f"[!] HTTP Error {e.code}: {error_body}")
         raise e
 
 def api_request(method, endpoint, token, data=None):

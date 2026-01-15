@@ -10,6 +10,8 @@ RUN apt-get update && apt-get install -y \
     gnupg2 \
     unixodbc-dev \
     libpq-dev \
+    wireguard-tools \
+    docker.io \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
