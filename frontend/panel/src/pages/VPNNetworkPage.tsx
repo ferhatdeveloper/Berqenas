@@ -35,6 +35,22 @@ export default function VPNNetworkPage() {
         }
     };
 
+    const handleDownload = async (client: VPNClient) => {
+        try {
+            const blob = await api.network.downloadConfig(client.tenant, client.id);
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${client.device_name}.conf`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } catch (error) {
+            console.error('Download failed:', error);
+        }
+    };
+
     return (
         <div className="p-8 bg-gray-900 min-h-screen">
             <div className="max-w-7xl mx-auto">
@@ -155,7 +171,9 @@ export default function VPNNetworkPage() {
 
                             {/* Actions */}
                             <div className="flex gap-3 mt-6">
-                                <button className="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition">
+                                <button
+                                    onClick={() => handleDownload(selectedClient)}
+                                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition">
                                     Download Config
                                 </button>
                                 <button className="flex-1 bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition">
@@ -171,6 +189,6 @@ export default function VPNNetworkPage() {
                     )}
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

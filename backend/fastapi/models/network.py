@@ -9,6 +9,7 @@ class VPNClient(Base):
     tenant_name = Column(String, ForeignKey("tenants.name"), nullable=False)
     device_name = Column(String, nullable=False)
     public_key = Column(String, nullable=False)
+    private_key = Column(String, nullable=False) # Store for config generation
     ip_address = Column(String, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     last_handshake = Column(DateTime(timezone=True), nullable=True)

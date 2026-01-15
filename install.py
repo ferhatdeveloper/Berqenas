@@ -63,6 +63,17 @@ def install():
         run_command("systemctl disable apache2 nginx || true")
         time.sleep(2)
 
+    # 3.5 Firewall Configuration (UFW)
+    print("[*] Firewall (UFW) portları açılıyor...")
+    # Ensure ufw is installed
+    run_command("apt-get install -y ufw")
+    run_command("ufw allow 22/tcp")  # SSH (Critical!)
+    run_command("ufw allow 80/tcp")  # HTTP
+    run_command("ufw allow 443/tcp") # HTTPS
+    run_command("ufw allow 81/tcp")  # NPM Admin
+    run_command("ufw allow 51820/udp") # WireGuard
+    # run_command("ufw --force enable") # Don't force enable, might lock user out if SSH config varies. Just allow rules.
+
     # 4. Automate Docker Installation
     try:
         subprocess.run(["docker", "--version"], capture_output=True, check=True)

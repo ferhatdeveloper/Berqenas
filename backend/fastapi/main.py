@@ -27,6 +27,10 @@ async def lifespan(app: FastAPI):
     """Application lifespan events"""
     logger.info("🚀 Berqenas Platform starting up...")
     # Startup: Initialize database connections, etc.
+    from database import engine, Base
+    # Create tables if they don't exist
+    Base.metadata.create_all(bind=engine)
+    logger.info("✅ Database tables created/verified.")
     yield
     # Shutdown: Close connections, cleanup
     logger.info("👋 Berqenas Platform shutting down...")

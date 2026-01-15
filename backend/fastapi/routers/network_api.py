@@ -103,21 +103,14 @@ async def create_vpn_client(tenant: str, client_in: VPNClientCreate, db: Session
             tenant_name=tenant,
             device_name=client_in.device_name,
             public_key=pub_key,
-            ip_address=next_ip,
-            # We should probably store private key encrypted or return it once.
-            # For now, we might want to return it in the response so the user can form the config.
-            # But the model might not have a private_key field.
-            # Let's assume VPNClientModel only stores public. The response might need to include config.
+            private_key=priv_key,
+            ip_address=next_ip
         )
         db.add(new_client)
         db.commit()
         db.refresh(new_client)
         
         # Return the private key in the response context (hacky but needed for generating client config on frontend)
-        # VPNClientResponse likely doesn't have private_key. We might need to adjust or rely on the frontend to display it?
-        # Typically the API should return the full client config string.
-        # For now, let's attach it to the object dynamically or log it.
-        # Better: Modifying the response model is out of scope for "Setup", but we ensure the backend *does* the work.
         new_client.private_key_temporarily = priv_key 
         
         return new_client
@@ -128,6 +121,57 @@ async def create_vpn_client(tenant: str, client_in: VPNClientCreate, db: Session
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
         )
+
+@router.get("/{tenant}/vpn/client/{client_id}/config")
+async def get_vpn_config(tenant: str, client_id: int, db: Session = Depends(get_db)):
+    """Download WireGuard config for client"""
+    from models.network import VPNClient as VPNClientModel
+    import os
+    
+    # 1. Get Client
+    client = db.query(VPNClientModel).filter(
+        VPNClientModel.id == client_id,
+        VPNClientModel.tenant_name == tenant
+    ).first()
+    
+    if not client:
+        raise HTTPException(status_code=404, detail="Client not found")
+        
+    # 2. Get Server Info
+    try:
+        from services.network_manager import NetworkManager
+        server_pub_key = "SERVER_PUB_KEY_NOT_FOUND" 
+        if os.path.exists(NetworkManager.WG_CONFIG_PATH):
+            with open(NetworkManager.WG_CONFIG_PATH, "r") as f:
+                content = f.read()
+                import re
+                match = re.search(r"# Server Public Key: (.*)", content)
+                if match:
+                    server_pub_key = match.group(1).strip()
+    except:
+        server_pub_key = "SERVER_PUB_KEY_NOT_FOUND"
+
+    # 3. Construct Config
+    server_host = os.getenv("SERVER_HOST", "berqenas.cloud") # Fallback to default
+    
+    config_content = f"""[Interface]
+PrivateKey = {client.private_key}
+Address = {client.ip_address}/32
+DNS = 8.8.8.8
+
+[Peer]
+PublicKey = {server_pub_key}
+Endpoint = {server_host}:51820
+AllowedIPs = 0.0.0.0/0
+PersistentKeepalive = 25
+"""
+    
+    from fastapi.responses import Response
+    return Response(
+        content=config_content, 
+        media_type="application/x-wireguard",
+        headers={"Content-Disposition": f"attachment; filename={client.device_name}.conf"}
+    )
 
 
 @router.get("/{tenant}/vpn/clients", response_model=List[VPNClientResponse])

@@ -58,5 +58,8 @@ export const api = {
   },
   network: {
     clients: () => fetch(`${API_BASE_URL}/network/clients`).then(r => r.json()),
+    downloadConfig: (tenant: string, clientId: number) =>
+      fetch(`${API_BASE_URL}/network/${tenant}/vpn/client/${clientId}/config`)
+        .then(res => res.blob()),
   }
 };

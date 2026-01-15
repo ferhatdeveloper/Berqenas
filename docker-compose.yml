@@ -30,6 +30,20 @@ services:
       - wg_config:/etc/wireguard
       - /var/run/docker.sock:/var/run/docker.sock
 
+  # --- Celery Worker (Background Tasks) ---
+  worker:
+    build: ./backend/fastapi
+    command: celery -A celery_app.celery_app worker --loglevel=info
+    restart: always
+    env_file:
+      - ./backend/fastapi/.env
+    depends_on:
+      - backend
+      - db
+      - redis
+    volumes:
+      - wg_config:/etc/wireguard
+
   # --- Frontend Panel (React) ---
   frontend:
     build: ./frontend/panel
