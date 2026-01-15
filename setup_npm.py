@@ -80,7 +80,14 @@ def setup(admin_email, admin_password, domain):
 
     # 1. Login with default credentials
     print("[*] Varsayılan bilgilerle giriş yapılıyor...")
-    token = get_token(DEFAULT_EMAIL, DEFAULT_PASS)
+    token = None
+    # Retry loop for initial login (Handling race condition where API is up but DB seeding is not done)
+    for i in range(12): # Try for 60 seconds
+        token = get_token(DEFAULT_EMAIL, DEFAULT_PASS)
+        if token:
+            break
+        print(f"[!] Giriş başarısız, veritabanının hazırlanması bekleniyor... ({i+1}/12)")
+        time.sleep(5)
     
     # If default login fails, try with provided credentials (maybe already setup)
     if not token:
