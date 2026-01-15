@@ -138,6 +138,7 @@ def setup(admin_email, admin_password, domain):
         "ssl_forced": True,
         "http2_support": True,
         "meta": {
+            "letsencrypt_email": admin_email,
             "letsencrypt_agree": True,
             "dns_challenge": False
         },
