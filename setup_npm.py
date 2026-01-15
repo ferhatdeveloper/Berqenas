@@ -199,11 +199,13 @@ def setup(admin_email, admin_password, domain):
         }
 
         if existing_id:
-            print(f"[*] Mevcut kayıt güncelleniyor (ID: {existing_id})...")
-            return api_request("PUT", f"/nginx/proxy-hosts/{existing_id}", token, proxy_data)
-        else:
-            print("[*] Yeni kayıt oluşturuluyor...")
-            return api_request("POST", "/nginx/proxy-hosts", token, proxy_data)
+            print(f"[*] Mevcut kayıt tespit edildi (ID: {existing_id}). Temizleniyor...")
+            # Instead of updating (which causes 500 if SSL state is weird), DELETE first.
+            api_request("DELETE", f"/nginx/proxy-hosts/{existing_id}", token)
+            time.sleep(2) # Give it a moment
+            
+        print("[*] Yeni Proxy Host oluşturuluyor...")
+        return api_request("POST", "/nginx/proxy-hosts", token, proxy_data)
 
     if not retry_operation(configure_proxy_logic, "Proxy Host ve SSL yapılandırılamadı"):
         print("\n[!] OTOMATİK KURULUM BAŞARISIZ OLDU.")
