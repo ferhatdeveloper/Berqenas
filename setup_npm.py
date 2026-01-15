@@ -14,11 +14,17 @@ def get_token(email, password):
     """authenticate and return access token"""
     try:
         data = json.dumps({"identity": email, "secret": password}).encode('utf-8')
-        req = urllib.request.Request(f"{NPM_API_URL}/tokens", data=data, headers={'Content-Type': 'application/json'})
+        headers = {
+            'Content-Type': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+        req = urllib.request.Request(f"{NPM_API_URL}/tokens", data=data, headers=headers, method='POST')
         with urllib.request.urlopen(req) as response:
             result = json.loads(response.read().decode('utf-8'))
             return result.get('token')
     except urllib.error.HTTPError as e:
+        if e.code == 400:
+            print(f"[!] Login Error 400 Body: {e.read().decode('utf-8')}")
         if e.code == 401: # Auth failed
             return None
         raise e
