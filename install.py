@@ -143,26 +143,26 @@ SETUP_ADMIN_PASSWORD={admin_pass}
         print("[+] Backend servisi veritabanını otomatik olarak başlatıyor...")
         time.sleep(5) 
         
-        print("\n[Aşama 3.1/3] Nginx Proxy Manager Otomatik Yapılandırılıyor...")
+        print("\n[Aşama 3/3] Nginx Proxy Manager (Manuel Kurulum)")
         print("----------------------------------------------------")
-        try:
-            # Wait a bit more for DB to be totally ready
-            time.sleep(5)
-            npm_cmd = f"{sys.executable} setup_npm.py --email '{admin_email}' --password '{admin_pass}' --domain '{domain}'"
-            run_command(npm_cmd)
-        except Exception as e:
-            print(f"[!] NPM Otomasyon Hatası: {e}")
-            print("[*] Ayarları manuel yapmanız gerekebilir.")
+        print("[*] Otomatik yapılandırma devre dışı bırakıldı.")
+        print("[*] Lütfen panelden 'Proxy Hosts' ayarlarını manuel yapın.")
 
         print("\n====================================================")
         print("   TEBRİKLER! Berqenas başarıyla kuruldu.          ")
-        print(f"   Ana Panel:   https://{domain}                   ")
-        print(f"   API Docs:    https://{domain}:8000/api/docs     ")
-        print(f"   SSL & Proxy: http://{domain}:81                 ")
+        print(f"   Ana Panel:   https://{domain} (Ayarlandıktan sonra)")
+        print(f"   API Docs:    http://{domain}:8000/api/docs      ")
+        print(f"   Nginx Yönetim: http://{domain}:81               ")
         print("   ------------------------------------------------")
-        print("   NPM Giriş Bilgileri:                            ")
-        print(f"   E-posta: {admin_email}                          ")
-        print(f"   Şifre  : {admin_pass}                           ")
+        print("   NPM Giriş (Varsayılan):                         ")
+        print("   E-posta: admin@example.com                      ")
+        print("   Şifre  : changeme                               ")
+        print("   ------------------------------------------------")
+        print("   LÜTFEN YAPINIZ:                                 ")
+        print("   1. http://{domain}:81 adresine gidin.           ")
+        print("   2. admin@example.com / changeme ile girin.      ")
+        print("   3. Kendi admin hesabınızı oluşturun.            ")
+        print(f"   4. 'Proxy Hosts' sekmesinden {domain} ekleyin.  ")
         print("====================================================\n")
     else:
         print("\n[✗] Kurulum sırasında bir hata oluştu.")
