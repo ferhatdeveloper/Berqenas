@@ -46,10 +46,13 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+import os
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+
 # CORS Middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=ALLOWED_ORIGINS,  # Read from env (set by install.py)
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

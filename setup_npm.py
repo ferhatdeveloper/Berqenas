@@ -99,7 +99,9 @@ def setup(admin_email, admin_password, domain):
             "email": admin_email,
             "roles": ["admin"]
         }
-        api_request("PUT", "/users/1", token, update_data)
+        if not api_request("PUT", "/users/1", token, update_data):
+            print("[!] Admin kullanıcı bilgileri güncellenemedi.")
+            sys.exit(1)
         
         # Change Password
         print("[*] Admin şifresi değiştiriliyor...")
@@ -108,7 +110,9 @@ def setup(admin_email, admin_password, domain):
             "secret": admin_password,
             "current": DEFAULT_PASS
         }
-        api_request("PUT", "/users/1/auth", token, pass_data)
+        if not api_request("PUT", "/users/1/auth", token, pass_data):
+            print("[!] Admin şifresi değiştirilemedi.")
+            sys.exit(1)
         
         # Re-login with new credentials
         token = get_token(admin_email, admin_password)
@@ -159,14 +163,17 @@ def setup(admin_email, admin_password, domain):
 
     if existing_id:
         print(f"[!] {domain} zaten var (ID: {existing_id}). Güncelleniyor...")
-        # For update, we might preserve cert ID if valid, but forcing 'new' re-requests.
-        # Let's try to update it.
-        # NOTE: If we update, we should usually pass the existing cert ID if we don't want to re-request.
-        # Simplified: Just update routing, keep SSL logic.
-        api_request("PUT", f"/nginx/proxy-hosts/{existing_id}", token, proxy_data)
+        if not api_request("PUT", f"/nginx/proxy-hosts/{existing_id}", token, proxy_data):
+            print(f"[✗] Proxy Host güncellenemedi: {domain}")
+            # Don't exit, might be partial success? No, strict.
+            sys.exit(1)
     else:
         print("[*] Yeni Proxy Host ekleniyor...")
-        api_request("POST", "/nginx/proxy-hosts", token, proxy_data)
+        resp = api_request("POST", "/nginx/proxy-hosts", token, proxy_data)
+        if not resp:
+            print(f"[✗] Proxy Host OLUŞTURULAMADI: {domain}")
+            print("    Hata detayları yukarıdadır.")
+            sys.exit(1)
 
     print("\n[✓] NPM Kurulumu Tamamlandı!")
     print(f"    Admin: {admin_email}")
