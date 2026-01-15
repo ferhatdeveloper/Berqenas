@@ -167,47 +167,71 @@ def setup(admin_email, admin_password, domain):
     
     def configure_proxy_logic():
         # Check existing
+    # Define function to create/update host
+    def configure_proxy_logic():
+        # Clean existing if found (to avoid 500 errors on corrupt state)
         hosts = api_request("GET", "/nginx/proxy-hosts", token) or []
         existing_id = next((h['id'] for h in hosts if domain in h.get('domain_names', [])), None)
         
-        proxy_data = {
+        if existing_id:
+             print(f"[*] Mevcut kayıt tespit edildi (ID: {existing_id}). Temizleniyor...")
+             api_request("DELETE", f"/nginx/proxy-hosts/{existing_id}", token)
+             time.sleep(2)
+
+        # STEP 1: Create HTTP Host first (without SSL)
+        # This ensures port 80 is open for Let's Encrypt validation
+        print("[*] Adım 1/2: HTTP Yönlendirmesi oluşturuluyor...")
+        http_data = {
             "domain_names": [domain],
             "forward_scheme": "http",
             "forward_host": "frontend",
             "forward_port": 80,
             "access_list_id": 0,
-            "certificate_id": "new",
-            "ssl_forced": True,
-            "http2_support": True,
+            "certificate_id": 0, # No SSL yet
+            "ssl_forced": False,
             "meta": {
-                "letsencrypt_email": admin_email,
-                "letsencrypt_agree": True,
+                "letsencrypt_agree": False,
                 "dns_challenge": False
             },
-            "advanced_config": "",
             "locations": [
-                {
-                    "path": "/api",
-                    "forward_scheme": "http",
-                    "forward_host": "backend",
-                    "forward_port": 8000
-                }
+                {"path": "/api", "forward_scheme": "http", "forward_host": "backend", "forward_port": 8000}
             ],
             "block_exploits": True,
-            "caching_enabled": True, # Websocket support requires this often implies upgrade too
+            "caching_enabled": True,
             "allow_websocket_upgrade": True
         }
-
-        if existing_id:
-            print(f"[*] Mevcut kayıt tespit edildi (ID: {existing_id}). Temizleniyor...")
-            # Instead of updating (which causes 500 if SSL state is weird), DELETE first.
-            api_request("DELETE", f"/nginx/proxy-hosts/{existing_id}", token)
-            time.sleep(2) # Give it a moment
+        
+        create_resp = api_request("POST", "/nginx/proxy-hosts", token, http_data)
+        if not create_resp or 'id' not in create_resp:
+            print("[!] HTTP Host oluşturulamadı!")
+            return False
             
-        print("[*] Yeni Proxy Host oluşturuluyor...")
-        return api_request("POST", "/nginx/proxy-hosts", token, proxy_data)
+        host_id = create_resp['id']
+        print(f"[✓] HTTP Host hazır (ID: {host_id}). SSL için 5 saniye bekleniyor...")
+        time.sleep(5)
+
+        # STEP 2: Request SSL Certificate
+        print("[*] Adım 2/2: SSL Sertifikası isteniyor (Let's Encrypt)...")
+        ssl_data = http_data.copy()
+        ssl_data["certificate_id"] = "new"
+        ssl_data["ssl_forced"] = True
+        ssl_data["http2_support"] = True
+        ssl_data["meta"]["letsencrypt_email"] = admin_email
+        ssl_data["meta"]["letsencrypt_agree"] = True
+
+        # Update the host to enable SSL
+        ssl_resp = api_request("PUT", f"/nginx/proxy-hosts/{host_id}", token, ssl_data)
+        if not ssl_resp:
+             print("[!] SSL alma işlemi başarısız oldu (Let's Encrypt hatası olabilir).")
+             print("    Lütfen domaininizin bu sunucuya yönlendiğinden emin olun.")
+             return False
+        
+        return True
 
     if not retry_operation(configure_proxy_logic, "Proxy Host ve SSL yapılandırılamadı"):
+        print("\n[!] OTOMATİK KURULUM BAŞARISIZ OLDU.")
+        print("Lütfen panelden manuel ekleyiniz (Port 81).")
+        sys.exit(1)
         print("\n[!] OTOMATİK KURULUM BAŞARISIZ OLDU.")
         print("Lütfen panelden manuel ekleyiniz (Port 81).")
         sys.exit(1)
