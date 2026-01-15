@@ -166,9 +166,6 @@ def setup(admin_email, admin_password, domain):
     print(f"[*] Proxy Host yapılandırılıyor: {domain}")
     
     def configure_proxy_logic():
-        # Check existing
-    # Define function to create/update host
-    def configure_proxy_logic():
         # Clean existing if found (to avoid 500 errors on corrupt state)
         hosts = api_request("GET", "/nginx/proxy-hosts", token) or []
         existing_id = next((h['id'] for h in hosts if domain in h.get('domain_names', [])), None)
