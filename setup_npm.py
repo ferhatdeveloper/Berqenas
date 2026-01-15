@@ -4,6 +4,7 @@ import json
 import time
 import sys
 import argparse
+import os
 
 # Configuration
 NPM_API_URL = "http://localhost:81/api"
@@ -149,8 +150,6 @@ def setup(admin_email, admin_password, domain):
         return api_request("PUT", "/users/1/auth", token, pass_data)
 
     # Only try changing password if we logged in with default
-    # If we logged in with provided credentials, token is valid for them.
-    # How to distinguish? We can try to get token with default again.
     if get_token(DEFAULT_EMAIL, DEFAULT_PASS):
         print("[*] Varsayılan şifre değiştiriliyor...")
         if not retry_operation(change_pass_logic, "Admin şifresi değiştirilemedi"):
@@ -165,8 +164,48 @@ def setup(admin_email, admin_password, domain):
     # 3. Create Proxy Host
     print(f"[*] Proxy Host yapılandırılıyor: {domain}")
     
+    # Function to check and upload local Certbot certificates
+    def upload_local_cert():
+        cert_path = f"/etc/letsencrypt/live/{domain}/fullchain.pem"
+        key_path = f"/etc/letsencrypt/live/{domain}/privkey.pem"
+        
+        try:
+            with open(cert_path, 'r') as f: cert_content = f.read()
+            with open(key_path, 'r') as f: key_content = f.read()
+            print(f"[*] Yerel sertifika bulundu: {cert_path}")
+        except FileNotFoundError:
+            return None
+
+        # Upload to NPM
+        cert_data = {
+            "nice_name": f"{domain}-Manual",
+            "provider": "custom",
+            "ssl_certificate": cert_content,
+            "ssl_certificate_key": key_content
+        }
+        
+        # Check if already exists?
+        certs = api_request("GET", "/nginx/certificates", token) or []
+        for c in certs:
+            if c.get("nice_name") == f"{domain}-Manual":
+                print(f"[✓] Sertifika NPM'de zaten mevcut (ID: {c['id']})")
+                return c['id']
+
+        print("[*] Yerel sertifika NPM'e yükleniyor...")
+        resp = api_request("POST", "/nginx/certificates", token, cert_data)
+        if resp and 'id' in resp:
+            print(f"[✓] Sertifika yüklendi (ID: {resp['id']})")
+            return resp['id']
+        else:
+            print("[!] Sertifika yükleme hatası.")
+            return None
+
+    # Define function to create/update host
     def configure_proxy_logic():
-        # Clean existing if found (to avoid 500 errors on corrupt state)
+        # Check for local cert first
+        custom_cert_id = upload_local_cert()
+        
+        # Clean existing if found
         hosts = api_request("GET", "/nginx/proxy-hosts", token) or []
         existing_id = next((h['id'] for h in hosts if domain in h.get('domain_names', [])), None)
         
@@ -175,67 +214,77 @@ def setup(admin_email, admin_password, domain):
              api_request("DELETE", f"/nginx/proxy-hosts/{existing_id}", token)
              time.sleep(2)
 
-        # STEP 1: Create HTTP Host first (without SSL)
-        # This ensures port 80 is open for Let's Encrypt validation
-        print("[*] Adım 1/2: HTTP Yönlendirmesi oluşturuluyor...")
-        http_data = {
+        print("[*] Proxy Host oluşturuluyor...")
+        
+        # Base config
+        host_data = {
             "domain_names": [domain],
             "forward_scheme": "http",
             "forward_host": "frontend",
             "forward_port": 80,
             "access_list_id": 0,
-            "certificate_id": 0, # No SSL yet
-            "ssl_forced": False,
-            "meta": {
-                "letsencrypt_agree": False,
-                "dns_challenge": False
-            },
             "locations": [
                 {"path": "/api", "forward_scheme": "http", "forward_host": "backend", "forward_port": 8000}
             ],
             "block_exploits": True,
             "caching_enabled": True,
-            "allow_websocket_upgrade": True
+            "allow_websocket_upgrade": True,
+            "advanced_config": ""
         }
         
-        create_resp = api_request("POST", "/nginx/proxy-hosts", token, http_data)
+        if custom_cert_id:
+            # Use the uploaded cert immediately
+            print(f"[*] Manuel SSL Sertifikası kullanılıyor (ID: {custom_cert_id}).")
+            host_data["certificate_id"] = custom_cert_id
+            host_data["ssl_forced"] = True
+            host_data["http2_support"] = True
+            host_data["meta"] = {"letsencrypt_agree": False, "dns_challenge": False}
+        else:
+            # Fallback to HTTP-first strategy (Step 1)
+            print("[!] Manuel sertifika bulunamadı, Otomatik (HTTP->HTTPS) deneniyor...")
+            host_data["certificate_id"] = 0
+            host_data["ssl_forced"] = False
+            host_data["meta"] = {"letsencrypt_agree": False, "dns_challenge": False}
+
+        create_resp = api_request("POST", "/nginx/proxy-hosts", token, host_data)
+        
         if not create_resp or 'id' not in create_resp:
-            print("[!] HTTP Host oluşturulamadı!")
+            print("[!] Host oluşturulamadı!")
             return False
             
         host_id = create_resp['id']
+        
+        # If we used custom cert, we are DONE.
+        if custom_cert_id:
+            print("[✓] SSL'li Host başarıyla oluşturuldu!")
+            return True
+            
+        # ... Otherwise continue with Step 2 (Upgrade logic) ...
         print(f"[✓] HTTP Host hazır (ID: {host_id}). SSL için 5 saniye bekleniyor...")
         time.sleep(5)
-
-        # STEP 2: Request SSL Certificate
-        print("[*] Adım 2/2: SSL Sertifikası isteniyor (Let's Encrypt)...")
-        ssl_data = http_data.copy()
+        print("[*] Adım 2/2: SSL Sertifikası isteniyor (Let's Encrypt Otomatik)...")
+        
+        # Upgrade logic...
+        ssl_data = host_data.copy()
         ssl_data["certificate_id"] = "new"
         ssl_data["ssl_forced"] = True
         ssl_data["http2_support"] = True
         ssl_data["meta"]["letsencrypt_email"] = admin_email
         ssl_data["meta"]["letsencrypt_agree"] = True
-
-        # Update the host to enable SSL
+        
         ssl_resp = api_request("PUT", f"/nginx/proxy-hosts/{host_id}", token, ssl_data)
         if not ssl_resp:
-             print("[!] SSL alma işlemi başarısız oldu (Let's Encrypt hatası olabilir).")
-             print("    Lütfen domaininizin bu sunucuya yönlendiğinden emin olun.")
-             return False
-        
+             print("[!] Otomatik SSL alma başarısız oldu (Let's Encrypt hatası/rate limit).")
+             print("    Site HTTP modunda bırakılıyor.")
+             return True # Accept partial success
         return True
 
-    if not retry_operation(configure_proxy_logic, "Proxy Host ve SSL yapılandırılamadı"):
-        print("\n[!] OTOMATİK KURULUM BAŞARISIZ OLDU.")
-        print("Lütfen panelden manuel ekleyiniz (Port 81).")
+    if not retry_operation(configure_proxy_logic, "Proxy Host yapılandırması"):
+        print("\n[!] KURULUM BAŞARISIZ OLDU.")
         sys.exit(1)
-        print("\n[!] OTOMATİK KURULUM BAŞARISIZ OLDU.")
-        print("Lütfen panelden manuel ekleyiniz (Port 81).")
-        sys.exit(1)
-
+    
     print("\n[✓] NPM Kurulumu Tamamlandı!")
-    print(f"    Admin: {admin_email}")
-    print(f"    Site : https://{domain}")
+    print(f"    Site : https://{domain} (veya http://{domain})")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
