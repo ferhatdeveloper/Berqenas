@@ -3,7 +3,7 @@ Security & Audit API
 Handles audit logging, security monitoring, and compliance
 """
 
-from fastapi import APIRouter, HTTPException, status, Query
+from fastapi import APIRouter, HTTPException, status, Query, Depends
 from typing import List, Optional
 from datetime import datetime
 import logging

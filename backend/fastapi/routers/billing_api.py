@@ -3,7 +3,7 @@ Billing & Usage API
 Handles usage tracking, quota management, and billing
 """
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from typing import List
 import logging
 

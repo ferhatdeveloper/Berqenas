@@ -3,7 +3,7 @@ Realtime Events API
 Handles device event ingestion and real-time streaming
 """
 
-from fastapi import APIRouter, HTTPException, status, WebSocket, WebSocketDisconnect, Query
+from fastapi import APIRouter, HTTPException, status, WebSocket, WebSocketDisconnect, Query, Depends
 from typing import List, Optional
 from datetime import datetime
 import logging

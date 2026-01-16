@@ -3,7 +3,7 @@ Auto-API Generator API
 Endpoint for generating APIs from MSSQL tables
 """
 
-from fastapi import APIRouter, HTTPException, status, BackgroundTasks
+from fastapi import APIRouter, HTTPException, status, BackgroundTasks, Depends
 from pydantic import BaseModel
 from typing import List, Optional
 import logging

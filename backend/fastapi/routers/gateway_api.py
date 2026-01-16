@@ -3,7 +3,7 @@ Gateway & NAT Management API
 Handles public exposure of VPN subnet services
 """
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from typing import List, Optional
 from pydantic import BaseModel, Field
 import logging
