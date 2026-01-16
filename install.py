@@ -164,6 +164,26 @@ SETUP_ADMIN_PASSWORD={admin_pass}
         print("   3. Kendi admin hesabınızı oluşturun.            ")
         print(f"   4. 'Proxy Hosts' sekmesinden {domain} ekleyin.  ")
         print("====================================================\n")
+        
+        # Run Health Check
+        print("[*] Sistem Sağlık Taraması Başlatılıyor...")
+        try:
+            subprocess.run([sys.executable, "check_health.py"], check=False)
+            
+            # Create Shortcut
+            print("\n[*] 'check' komutu oluşturuluyor...")
+            check_script = f"""#!/bin/bash
+cd {os.getcwd()}
+python3 check_health.py
+"""
+            with open("/usr/local/bin/berqenas-check", "w") as f:
+                f.write(check_script)
+            run_command("chmod +x /usr/local/bin/berqenas-check")
+            print(f"[✓] Kısayol eklendi. İstediğiniz zaman '{CYAN}berqenas-check{RESET}' (veya sadece '{CYAN}check{RESET}' alias eklerseniz) yazarak test edebilirsiniz.")
+            
+        except Exception:
+            pass
+            
     else:
         print("\n[✗] Kurulum sırasında bir hata oluştu.")
 

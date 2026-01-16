@@ -5,7 +5,8 @@ WORKDIR /app
 
 # Install system dependencies (ODBC for MSSQL, libpq for Postgres)
 RUN apt-get update && apt-get install -y \
-    gcc \
+    build-essential \
+    libffi-dev \
     curl \
     gnupg2 \
     unixodbc-dev \
